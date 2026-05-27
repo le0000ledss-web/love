@@ -155,6 +155,21 @@
     @keyframes floatUp { 0%{transform:translateY(0)rotate(0deg);opacity:0} 10%{opacity:0.8} 90%{opacity:0.6} 100%{transform:translateY(-400px)rotate(360deg);opacity:0} }
     .easter-egg { position:fixed; z-index:999; pointer-events:none; animation:floatUp 3s ease-in-out forwards; }
     @keyframes floatUp { 0%{transform:translateY(0)rotate(0deg);opacity:1;} 100%{transform:translateY(-100px)rotate(360deg);opacity:0;} }
+    /* Role Selection */
+    .role-select-overlay { display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#fff5f7,#f0f0ff); z-index:2000; justify-content:center; align-items:center; }
+    .role-select-overlay.hidden { display:none; }
+    .role-select-card { text-align:center; padding:40px 32px; background:#fff; border-radius:24px; box-shadow:0 10px 40px rgba(0,0,0,0.1); max-width:340px; width:90%; animation:popIn 0.4s ease; }
+    .role-select-card .rs-icon { font-size:64px; margin-bottom:16px; }
+    .role-select-card .rs-title { font-size:20px; font-weight:700; color:#ff6b9d; margin-bottom:8px; }
+    .role-select-card .rs-desc { font-size:13px; color:#888; margin-bottom:28px; line-height:1.6; }
+    .role-btn-group { display:flex; flex-direction:column; gap:12px; }
+    .role-btn { padding:16px 24px; border-radius:16px; border:2px solid #ffb3cc; background:#fff; cursor:pointer; font-size:16px; font-weight:700; transition:all 0.2s; display:flex; align-items:center; gap:12px; justify-content:center; }
+    .role-btn:hover { background:#fff5f7; border-color:#ff6b9d; transform:scale(1.02); }
+    .role-btn .rb-icon { font-size:28px; }
+    .role-btn .rb-info { text-align:left; }
+    .role-btn .rb-name { color:#333; font-size:15px; }
+    .role-btn .rb-detail { color:#999; font-size:11px; margin-top:2px; }
+    .role-reset { margin-top:20px; font-size:11px; color:#ccc; cursor:pointer; text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -400,6 +415,32 @@
     </div>
   </div>
 
+  <!-- Role Selection -->
+  <div class="role-select-overlay" id="roleSelect">
+    <div class="role-select-card">
+      <div class="rs-icon">❤️</div>
+      <div class="rs-title">你是？</div>
+      <div class="rs-desc">选择你的身份，页面会为你和ta切换不同的权限和视角</div>
+      <div class="role-btn-group">
+        <button class="role-btn" onclick="selectRole('mi')">
+          <span class="rb-icon">🐭</span>
+          <span class="rb-info">
+            <div class="rb-name">我是 mi鼠</div>
+            <div class="rb-detail">巨蟹座 · 6.26 · 成都 · 可发起投诉</div>
+          </span>
+        </button>
+        <button class="role-btn" onclick="selectRole('zhu')">
+          <span class="rb-icon">🐷</span>
+          <span class="rb-info">
+            <div class="rb-name">我是 纯猪蛋</div>
+            <div class="rb-detail">摩羯座 · 12.30 · 嘉善 · 处理投诉</div>
+          </span>
+        </button>
+      </div>
+      <div class="role-reset" onclick="resetRole()">重新选择身份</div>
+    </div>
+  </div>
+
   <!-- Meeting Day Splash -->
   <div class="splash-overlay" id="meetingSplash">
     <div class="splash-content">
@@ -414,7 +455,30 @@
 
 <script>
 // ==================== GLOBAL STATE ====================
-const isYou = true; // Fixed: you can only be "you", he can only be "ta"
+// Role: 'mi' = mi鼠, 'zhu' = 纯猪蛋
+let userRole = localStorage.getItem('couple_role') || null;
+const isYou = userRole === 'mi'; // mi鼠是"you"，纯猪蛋是"ta"
+
+function selectRole(role) {
+  userRole = role;
+  localStorage.setItem('couple_role', role);
+  document.getElementById('roleSelect').classList.add('hidden');
+  location.reload();
+}
+
+function resetRole() {
+  localStorage.removeItem('couple_role');
+  location.reload();
+}
+
+// Show role selection if not chosen
+if (!userRole) {
+  document.getElementById('roleSelect').classList.remove('hidden');
+  // Hide main content until role is selected
+} else {
+  document.getElementById('roleSelect').classList.add('hidden');
+}
+
 const deviceId = localStorage.getItem('couple_device_id') || (Math.random().toString(36).substr(2) + Date.now().toString(36));
 localStorage.setItem('couple_device_id', deviceId);
 let quizTimer = null;
