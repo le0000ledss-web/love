@@ -15,7 +15,7 @@
       --red: #ff4757; --red-light: #ffcccc; --red-bg: #fff0f0;
     }
     * { margin:0; padding:0; box-sizing:border-box; font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; }
-    body { background:#fafafa; color:#333; line-height:1.6; padding:16px; max-width:480px; margin:0 auto; }
+    body { background:linear-gradient(180deg,#fff0f5 0%,#ffe8f0 30%,#fafafa 100%); background-attachment:fixed; color:#333; line-height:1.6; padding:16px; max-width:480px; margin:0 auto; min-height:100vh; }
     .header { text-align:center; margin-bottom:24px; }
     .title { font-size:28px; font-weight:800; color:var(--pink); margin-bottom:4px; }
     .subtitle { font-size:13px; color:#888; }
@@ -170,6 +170,12 @@
     .role-btn .rb-name { color:#333; font-size:15px; }
     .role-btn .rb-detail { color:#999; font-size:11px; margin-top:2px; }
     .role-reset { margin-top:20px; font-size:11px; color:#ccc; cursor:pointer; text-decoration:underline; }
+    .countdown-section { background:linear-gradient(135deg,#fff5f7,#ffe8f0); border-radius:20px; padding:24px 16px; text-align:center; border:2px solid #ffb3cc; box-shadow:0 4px 20px rgba(255,107,157,0.15); }
+    .target { font-size:15px; color:var(--pink); font-weight:600; margin:10px 0 16px; }
+    .countdown-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; max-width:320px; margin:0 auto; }
+    .cd-item { background:#fff; border-radius:16px; padding:12px 6px; box-shadow:0 3px 12px rgba(255,107,157,0.1); border:1.5px solid #ffd6e5; }
+    .cd-item .num { font-size:32px; font-weight:800; color:var(--pink); line-height:1.2; }
+    .cd-item .unit { font-size:12px; color:#c97a94; margin-top:2px; font-weight:500; }
   </style>
 </head>
 <body>
