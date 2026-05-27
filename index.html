@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>纯猪蛋 & mi鼠</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
+  <style>
+    :root {
+      --pink: #ff6b9d; --pink-light: #ffb3cc; --pink-bg: #fff5f7;
+      --green: #2ed573; --green-light: #b3ffb3; --green-bg: #f0fff0;
+      --blue: #5352ed; --blue-light: #b3b3ff; --blue-bg: #f0f0ff;
+      --yellow: #ffa502; --yellow-light: #ffe066; --yellow-bg: #fffbe6;
+      --purple: #a55eea; --purple-light: #d0b3ff; --purple-bg: #f8f4ff;
+      --red: #ff4757; --red-light: #ffcccc; --red-bg: #fff0f0;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; }
+    body { background:#fafafa; color:#333; line-height:1.6; padding:16px; max-width:480px; margin:0 auto; }
+    .header { text-align:center; margin-bottom:24px; }
+    .title { font-size:28px; font-weight:800; color:var(--pink); margin-bottom:4px; }
+    .subtitle { font-size:13px; color:#888; }
+    .section { background:#fff; border-radius:20px; padding:20px; margin-bottom:16px; box-shadow:0 4px 16px rgba(0,0,0,0.05); border:1px solid #f0f0f0; }
+    .section-title { font-size:16px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; }
+    .section-title .icon { margin-right:8px; font-size:18px; }
+    .section-hint { font-size:12px; color:#aaa; margin-bottom:12px; }
+    .badge { display:inline-block; background:var(--pink); color:#fff; font-size:11px; padding:2px 8px; border-radius:10px; margin-left:8px; vertical-align:middle; }
+    .badge-gold { background:linear-gradient(135deg,#ffd700,#ffa502); color:#fff; font-size:11px; padding:2px 10px; border-radius:10px; margin-left:8px; vertical-align:middle; }
+    .btn { padding:7px 16px; border-radius:18px; border:none; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s; }
+    .btn-red { background:#ff4757; color:#fff; } .btn-red:hover { background:#e84118; }
+    .btn-green { background:#2ed573; color:#fff; } .btn-green:hover { background:#26ae60; }
+    .btn-orange { background:#ffa502; color:#fff; } .btn-orange:hover { background:#e89400; }
+    .btn-blue { background:#5352ed; color:#fff; } .btn-blue:hover { background:#3d3bd0; }
+    .btn-purple { background:#a55eea; color:#fff; } .btn-purple:hover { background:#8e44d0; }
+    .btn-outline { background:none; border:1.5px solid var(--pink-light); color:var(--pink); border-radius:20px; padding:6px 20px; font-size:13px; cursor:pointer; transition:all 0.2s; }
+    .btn-outline:hover { background:#fff0f5; }
+    .btn-outline-sm { background:none; border:1.5px solid #ddd; color:#999; border-radius:14px; padding:4px 12px; font-size:11px; cursor:pointer; transition:all 0.2s; }
+    .btn-outline-sm:hover { background:#f5f5f5; border-color:#ccc; }
+    .mood-btn-group { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:12px; }
+    .mood-btn { width:44px; height:44px; border-radius:50%; border:2px solid #ffb3cc; background:#fff; font-size:20px; cursor:pointer; transition:all 0.2s; }
+    .mood-btn:hover { background:#fff5f7; transform:scale(1.1); }
+    .mood-btn.active { background:var(--pink); color:#fff; border-color:var(--pink); }
+    .mood-status { margin-top:12px; font-size:13px; color:#c97a94; min-height:20px; }
+    .map-canvas-wrap { position:relative; height:220px; border-radius:14px; overflow:hidden; background:linear-gradient(135deg,#e8f4f8,#f0e6ff); }
+    .map-canvas-wrap canvas { width:100%; height:100%; display:block; }
+    .city-tags { display:flex; justify-content:space-between; margin-top:10px; font-size:13px; color:#888; }
+    .city-tags span { font-weight:600; color:var(--pink); }
+    .note-card { background:#fffbe6; border-radius:12px; padding:18px 16px; font-size:14px; color:#8b7355; line-height:1.8; min-height:50px; position:relative; text-align:center; }
+    .note-card::before { content:''; position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:30px; height:12px; background:#ffe066; border-radius:3px; }
+    .complaint-form,.memory-upload,.todo-form,.invite-form,.share-form { display:none; margin-top:12px; }
+    .complaint-form.show,.memory-upload.show,.todo-form.show,.invite-form.show,.share-form.show { display:block; }
+    .complaint-form textarea,.share-form textarea { width:100%; height:70px; border:1.5px solid #ffb3cc; border-radius:12px; padding:10px; font-size:14px; resize:vertical; font-family:inherit; outline:none; }
+    .complaint-form textarea:focus,.share-form textarea:focus { border-color:var(--pink); }
+    .popup-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center; }
+    .popup-overlay.show { display:flex; }
+    .popup-card { background:#fff; border-radius:20px; padding:28px 24px; max-width:380px; width:90%; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,0.2); animation:popIn 0.3s ease; max-height:90vh; overflow-y:auto; }
+    @keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+    .popup-card .popup-icon { font-size:48px; margin-bottom:12px; }
+    .popup-card .popup-title { font-size:18px; font-weight:700; color:var(--red); margin-bottom:8px; }
+    .popup-card .popup-reason { font-size:15px; color:#555; line-height:1.6; margin-bottom:20px; }
+    .popup-card .popup-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .popup-card .quiz-img { width:100%; max-height:180px; object-fit:cover; border-radius:12px; margin-bottom:12px; }
+    .popup-card .quiz-option { display:block; width:100%; padding:12px; margin:6px 0; border:2px solid #eee; border-radius:12px; cursor:pointer; font-size:14px; background:#fafafa; transition:all 0.2s; text-align:left; }
+    .popup-card .quiz-option:hover { border-color:var(--pink); background:#fff5f7; }
+    .popup-card .quiz-option.selected { border-color:var(--pink); background:#ffe8f0; }
+    .popup-card .quiz-option.correct { border-color:#2ed573; background:#e8ffe8; }
+    .popup-card .quiz-option.wrong { border-color:#ff4757; background:#ffe8e8; }
+    .quiz-card { background:linear-gradient(135deg,#f0f8ff,#e6f0ff); border-radius:16px; padding:20px 16px; text-align:center; cursor:pointer; transition:all 0.2s; }
+    .quiz-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.1); }
+    .quiz-card .quiz-icon { font-size:40px; margin-bottom:8px; }
+    .quiz-card .quiz-title { font-size:15px; font-weight:700; color:var(--blue); margin-bottom:4px; }
+    .quiz-card .quiz-desc { font-size:13px; color:#666; margin-bottom:12px; }
+    .quiz-card .quiz-score { display:flex; justify-content:space-around; margin-top:12px; }
+    .quiz-score-item { text-align:center; }
+    .quiz-score-item .score-name { font-size:11px; color:#aaa; }
+    .quiz-score-item .score-value { font-size:20px; font-weight:700; color:var(--pink); }
+    .complaint-list,.share-list,.personal-todo-list { margin-bottom:12px; }
+    .complaint-item,.share-item,.personal-todo-item { background:#f9f9f9; border-radius:12px; padding:14px 16px; margin-bottom:10px; border-left:4px solid #ffb3cc; }
+    .complaint-item.done { border-left-color:#2ed573; background:#f0fff0; }
+    .complaint-item.rejected { border-left-color:#ffa502; background:#fffbe6; }
+    .complaint-item .complaint-reason { font-size:14px; color:#555; line-height:1.6; margin-bottom:6px; }
+    .complaint-item .complaint-meta { font-size:11px; color:#bbb; }
+    .complaint-status { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:600; margin-left:8px; }
+    .status-pending { background:#ffe0e0; color:#e74c3c; }
+    .status-done { background:#e0ffe0; color:#27ae60; }
+    .status-rejected { background:#fff3e0; color:#e67e22; }
+    .complaint-actions { display:flex; gap:8px; margin-top:8px; }
+    .share-item .share-tag { display:inline-block; background:#e0ffe0; color:#2e7d32; padding:2px 8px; border-radius:10px; font-size:10px; margin-right:6px; }
+    .share-item .share-content { font-size:14px; color:#555; line-height:1.6; margin-bottom:6px; }
+    .share-item .share-meta { font-size:11px; color:#bbb; display:flex; justify-content:space-between; }
+    .share-form input,.share-form select,.invite-form input,.invite-form select { width:100%; border:1.5px solid #b3ffb3; border-radius:12px; padding:10px; font-size:14px; font-family:inherit; outline:none; margin-bottom:8px; }
+    .share-form input:focus,.share-form select:focus,.invite-form input:focus,.invite-form select:focus { border-color:var(--green); }
+    .invite-form textarea { width:100%; height:60px; border:1.5px solid #d0b3ff; border-radius:12px; padding:10px; font-size:14px; resize:vertical; font-family:inherit; outline:none; margin-bottom:8px; }
+    .invite-form textarea:focus { border-color:var(--purple); }
+    .personal-todo-item { display:flex; align-items:center; gap:10px; }
+    .personal-todo-item .todo-check { width:20px; height:20px; border-radius:50%; border:2px solid #ccc; cursor:pointer; flex-shrink:0; }
+    .personal-todo-item .todo-check.checked { background:var(--yellow); border-color:var(--yellow); position:relative; }
+    .personal-todo-item .todo-check.checked::after { content:'✓'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:12px; font-weight:bold; }
+    .personal-todo-item .todo-text { flex:1; }
+    .personal-todo-item .todo-text.done { text-decoration:line-through; color:#999; }
+    .memory-photo-wall { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+    .memory-photo-item { aspect-ratio:1; border-radius:10px; overflow:hidden; position:relative; cursor:pointer; }
+    .memory-photo-item img { width:100%; height:100%; object-fit:cover; }
+    .photo-date { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; padding:4px; text-align:center; }
+    .memory-today { margin-bottom:12px; text-align:center; font-size:13px; color:#666; }
+    .today-photo { max-width:100%; max-height:200px; border-radius:12px; margin-top:8px; }
+    .todo-item { background:#f9f9f9; border-radius:12px; padding:14px 16px; margin-bottom:10px; border-left:4px solid #b3b3ff; }
+    .todo-title { font-size:15px; font-weight:600; margin-bottom:4px; }
+    .todo-type { display:inline-block; background:#e0e0ff; color:#5352ed; font-size:10px; padding:2px 8px; border-radius:10px; margin-bottom:6px; }
+    .todo-meta { font-size:11px; color:#999; margin-bottom:8px; }
+    .todo-ai { background:#f0f8ff; border-radius:10px; padding:10px; font-size:12px; color:#555; line-height:1.5; margin-top:8px; }
+    .todo-ai .ai-title { font-weight:700; color:#5352ed; margin-bottom:4px; }
+    .ai-loading { color:#999; text-align:center; }
+    .horoscope-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+    .horoscope-card { background:linear-gradient(135deg,#f0f8ff,#e6f0ff); border-radius:14px; padding:16px; text-align:center; }
+    .horoscope-card .sign-icon { font-size:32px; margin-bottom:8px; }
+    .horoscope-card .sign-name { font-size:14px; font-weight:700; color:#5352ed; margin-bottom:4px; }
+    .horoscope-card .sign-date { font-size:11px; color:#888; margin-bottom:8px; }
+    .horoscope-card .horoscope-text { font-size:13px; color:#555; line-height:1.5; }
+    .horoscope-card .lucky-item { font-size:12px; color:#a55eea; margin-top:6px; }
+    /* Game Invitation */
+    .game-list { display:flex; flex-direction:column; gap:10px; }
+    .game-item { background:#f8f4ff; border-radius:12px; padding:14px 16px; border-left:4px solid #a55eea; }
+    .game-item.accepted { border-left-color:#27ae60; background:#f0faf4; }
+    .game-item.rejected { border-left-color:#e74c3c; background:#fef5f5; opacity:0.7; }
+    .game-item .game-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .game-item .game-name { font-size:15px; font-weight:700; color:#6c3fb5; }
+    .game-item.accepted .game-name { color:#27ae60; }
+    .game-item .game-status { font-size:11px; padding:3px 8px; border-radius:10px; }
+    .game-status.pending { background:#f0e6ff; color:#a55eea; }
+    .game-status.accepted { background:#d5f5e3; color:#27ae60; }
+    .game-status.rejected { background:#fadbd8; color:#c0392b; }
+    .game-item .game-info { font-size:13px; color:#666; line-height:1.6; }
+    .game-item .game-actions { margin-top:8px; display:flex; gap:8px; }
+    .game-item .game-actions button { font-size:11px; padding:4px 12px; border-radius:8px; border:none; cursor:pointer; }
+    .game-item .game-actions .btn-accept { background:#27ae60; color:#fff; }
+    .game-item .game-actions .btn-reject { background:#e74c3c; color:#fff; }
+    .game-from { font-size:11px; color:#999; margin-bottom:6px; }
+    .footer { text-align:center; font-size:12px; color:#ccc; padding:16px 0; }
+    .footer .heart { color:var(--pink); }
+    .role-lock { position:fixed; top:12px; right:12px; background:#fff; border-radius:12px; padding:8px 12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); z-index:100; text-align:center; }
+    .role-info { font-size:12px; font-weight:700; color:var(--pink); }
+    .role-tag { font-size:10px; color:#999; }
+    @media (max-width:400px) {
+      .horoscope-grid { grid-template-columns:1fr; }
+      .memory-photo-wall { grid-template-columns:repeat(2,1fr); }
+    }
+    @keyframes splashIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+    @keyframes bounceHeart { from{transform:translateY(0)scale(1)} to{transform:translateY(-12px)scale(1.08)} }
+    .splash-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:1000; justify-content:center; align-items:center; }
+    .splash-overlay.show { display:flex; }
+    .splash-content { text-align:center; animation:splashIn 0.5s ease; }
+    .splash-content .splash-icon { font-size:80px; margin-bottom:16px; animation:bounceHeart 1s ease infinite alternate; color:var(--pink); }
+    .splash-content .splash-msg { font-size:18px; opacity:0.9; line-height:1.6; margin-bottom:24px; }
+    .splash-particle { position:absolute; font-size:24px; animation:floatUp 3s linear infinite; opacity:0; }
+    @keyframes floatUp { 0%{transform:translateY(0)rotate(0deg);opacity:0} 10%{opacity:0.8} 90%{opacity:0.6} 100%{transform:translateY(-400px)rotate(360deg);opacity:0} }
+    .easter-egg { position:fixed; z-index:999; pointer-events:none; animation:floatUp 3s ease-in-out forwards; }
+    @keyframes floatUp { 0%{transform:translateY(0)rotate(0deg);opacity:1;} 100%{transform:translateY(-100px)rotate(360deg);opacity:0;} }
+  </style>
+</head>
+<body>
+  <!-- Role Lock -->
+  <div class="role-lock">
+    <div class="role-info" id="roleInfo">🐭 mi鼠的页面</div>
+    <div class="role-tag" id="roleTag">投诉权限：mi鼠</div>
+  </div>
+
+  <div class="header">
+    <div class="title">mi鼠 & 纯猪蛋</div>
+    <div class="subtitle">2018·4·8 在一起 · 2025·7·7 领证</div>
+  </div>
+
+  <!-- Countdown -->
+  <div class="section countdown-section">
+    <div class="section-title"><span class="icon">⏳</span>距离下次见面</div>
+    <div class="target" id="targetLabel">2026年6月12日 · 下次见面</div>
+    <div class="countdown-grid" id="countdown">
+      <div class="cd-item"><div class="num" id="cd-days">--</div><div class="unit">天</div></div>
+      <div class="cd-item"><div class="num" id="cd-hours">--</div><div class="unit">时</div></div>
+      <div class="cd-item"><div class="num" id="cd-mins">--</div><div class="unit">分</div></div>
+      <div class="cd-item"><div class="num" id="cd-secs">--</div><div class="unit">秒</div></div>
+    </div>
+  </div>
+
+  <!-- Mood -->
+  <div class="section" style="text-align:center">
+    <div class="section-title"><span class="icon">💡</span>戳一下，告诉ta你在想ta</div>
+    <div class="section-hint">点一下小灯，对方打开页面就能看到</div>
+    <div class="mood-btn-group" id="moodBtns">
+      <button class="mood-btn" data-mood="想你">💗</button>
+      <button class="mood-btn" data-mood="爱你">😘</button>
+      <button class="mood-btn" data-mood="抱抱">🤗</button>
+      <button class="mood-btn" data-mood="亲亲">😚</button>
+      <button class="mood-btn" data-mood="生气">😠</button>
+      <button class="mood-btn" data-mood="委屈">🥺</button>
+      <button class="mood-btn" data-mood="晚安">🌙</button>
+      <button class="mood-btn" data-mood="加油">💪</button>
+    </div>
+    <div class="mood-status" id="moodStatus"></div>
+  </div>
+
+  <!-- ===== DAILY SHARE ===== -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">📔</span>今日分享
+      <span class="badge" id="shareBadge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">记录今天的灵感、读书、美食、健康状态...</div>
+    <div class="share-list" id="shareList"></div>
+    <button class="btn-outline" onclick="toggleShareForm()">+ 分享今日</button>
+    <div class="share-form" id="shareForm">
+      <select id="shareType">
+        <option value="inspiration">💡 灵感想法</option>
+        <option value="book">📚 读书笔记</option>
+        <option value="food">🍜 美食记录</option>
+        <option value="health">💩 健康状态</option>
+        <option value="mood">😊 心情随笔</option>
+        <option value="work">💼 工作学习</option>
+      </select>
+      <textarea id="shareContent" placeholder="写下你的分享..."></textarea>
+      <button class="btn btn-green" onclick="submitShare()">发布分享</button>
+    </div>
+  </div>
+
+  <!-- ===== PERSONAL TODO ===== -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">✅</span>今日待办
+      <span class="badge" id="personalTodoBadge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">列出今天要做的任务，完成打勾，对方能看到进度</div>
+    <div class="personal-todo-list" id="personalTodoList"></div>
+    <button class="btn-outline" onclick="togglePersonalTodoForm()">+ 添加任务</button>
+    <div class="personal-todo-form" id="personalTodoForm">
+      <input type="text" id="personalTodoText" placeholder="今天要做什么？">
+      <button class="btn btn-blue" onclick="addPersonalTodo()">添加任务</button>
+    </div>
+  </div>
+
+  <!-- ===== HOROSCOPE ===== -->
+  <div class="section">
+    <div class="section-title"><span class="icon">✨</span>星座运势</div>
+    <div class="section-hint">巨蟹(mi鼠) ♋️ 和 摩羯(纯猪蛋) ♑️ 的今日运势</div>
+    <div class="horoscope-grid" id="horoscopeGrid"></div>
+  </div>
+
+  <!-- ===== DAILY QUIZ ===== -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🏆</span>每日竞猜
+      <span class="badge-gold" id="quizBadge">今日未答</span>
+    </div>
+    <div class="section-hint">每天一道趣味题，限时30秒作答，赢家积1分</div>
+    <div class="quiz-card" onclick="startDailyQuiz()">
+      <div class="quiz-icon">🧠</div>
+      <div class="quiz-title" id="quizDayTitle">第1天 · 知识挑战</div>
+      <div class="quiz-desc">点击开始今日竞猜，限时30秒，不能搜索哦！</div>
+      <div class="quiz-score">
+        <div class="quiz-score-item">
+          <div class="score-name">🐭 mi鼠</div>
+          <div class="score-value" id="scoreYou">0</div>
+        </div>
+        <div class="quiz-score-item">
+          <div class="score-name">🐷 纯猪蛋</div>
+          <div class="score-value" id="scoreTa">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COMPLAINT SYSTEM ===== -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">📋</span>记仇投诉中心
+      <span class="badge" id="complaintBadge" style="display:none">0</span>
+    </div>
+    <div class="section-hint" id="complaintHint">只有mi鼠可以发起投诉，纯猪蛋只能处理</div>
+    <div class="complaint-list" id="complaintList"></div>
+    <button class="btn-outline" onclick="toggleComplaintForm()" id="btnAddComplaint">+ 新增投诉</button>
+    <div class="complaint-form" id="complaintForm">
+      <textarea id="complaintReason" placeholder="写下生气的原因..."></textarea>
+      <button class="btn btn-red" onclick="submitComplaint()">提交投诉</button>
+    </div>
+  </div>
+
+  <!-- ===== GAME INVITATION ===== -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🎮</span>游戏邀约
+      <span class="badge" id="gameBadge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">发起游戏邀请，一起联机玩耍吧~</div>
+    <div class="game-list" id="gameList"></div>
+    <button class="btn-outline" onclick="toggleGameForm()">+ 发起邀约</button>
+    <div class="invite-form" id="gameForm">
+      <select id="gameName">
+        <option value="王者荣耀">🎮 王者荣耀</option>
+        <option value="蛋仔派对">🥚 蛋仔派对</option>
+        <option value="光遇">🕯️ 光遇</option>
+        <option value="和平精英">🔫 和平精英</option>
+        <option value="原神">🌍 原神</option>
+        <option value="金铲铲之战">♟️ 金铲铲之战</option>
+        <option value="英雄联盟手游">⚔️ 英雄联盟手游</option>
+        <option value="其他">🎲 其他游戏</option>
+      </select>
+      <input type="text" id="gameTime" placeholder="可选时间（如：今晚8点、周末下午）">
+      <textarea id="gameNote" placeholder="补充说明（如：我玩辅助、想玩娱乐模式...）"></textarea>
+      <button class="btn btn-purple" onclick="submitGameInvite()">发起邀约</button>
+    </div>
+  </div>
+
+  <!-- ===== MEMORY PHOTO WALL ===== -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📸</span>回忆照片墙</div>
+    <div class="section-hint">每天自动展示一张照片，记录我们的故事</div>
+    <div id="memoryToday"></div>
+    <div class="memory-photo-wall" id="memoryWall"></div>
+    <button class="btn-outline" onclick="toggleMemoryUpload()">+ 上传照片</button>
+    <div class="memory-upload" id="memoryUpload">
+      <input type="text" id="photoUrl" placeholder="粘贴图片链接（支持 .jpg/.png/.gif）">
+      <input type="text" id="photoDate" placeholder="照片日期（如：2025-05-20 第一次约会）">
+      <button class="btn btn-green" onclick="uploadPhoto()">保存照片</button>
+    </div>
+  </div>
+
+  <!-- ===== AI TO-DO LIST ===== -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🤖</span>AI心愿清单
+      <span class="badge" id="todoBadge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">记录想一起做的事，AI会推荐攻略和小贴士</div>
+    <div class="todo-list" id="todoList"></div>
+    <button class="btn-outline" onclick="toggleTodoForm()">+ 添加心愿</button>
+    <div class="todo-form" id="todoForm">
+      <input type="text" id="todoTitle" placeholder="想一起做什么？">
+      <select id="todoType">
+        <option value="play">🎮 想玩</option>
+        <option value="eat">🍜 想吃</option>
+        <option value="go">✈️ 想去</option>
+        <option value="watch">🎬 想看</option>
+        <option value="buy">🛍️ 想买</option>
+      </select>
+      <textarea id="todoNotes" placeholder="补充说明（可选）"></textarea>
+      <button class="btn btn-blue" onclick="addTodo()">添加心愿</button>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div class="section" style="text-align:center">
+    <div class="section-title"><span class="icon">🗺</span>我们之间</div>
+    <div class="map-canvas-wrap"><canvas id="mapCanvas"></canvas></div>
+    <div class="city-tags">
+      <span id="cityA">🐭 mi鼠</span>
+      <span style="color:#ff8e53;">━━━━ ❤ ━━━━</span>
+      <span id="cityB">🐷 纯猪蛋</span>
+    </div>
+  </div>
+
+  <!-- Question -->
+  <div class="section" style="text-align:center">
+    <div class="section-title"><span class="icon">💬</span>每日一问</div>
+    <div class="section-hint">每天一个深度话题，增进了解</div>
+    <div class="note-card" id="questionCard" onclick="randomQuestion()">点击刷新问题</div>
+  </div>
+
+  <!-- Popups -->
+  <div class="popup-overlay" id="complaintPopup">
+    <div class="popup-card">
+      <div class="popup-icon">😠</div>
+      <div class="popup-title">纯猪蛋被投诉了！</div>
+      <div class="popup-reason" id="popupReason"></div>
+      <div class="popup-actions">
+        <button class="btn btn-green" onclick="handleComplaint('done')">已改正 🙇</button>
+        <button class="btn btn-orange" onclick="handleComplaint('pending')">再等等</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="quizPopup">
+    <div class="popup-card">
+      <div class="popup-icon">🧠</div>
+      <div class="popup-title" id="quizTitle">每日竞猜</div>
+      <img class="quiz-img" id="quizImg" src="" alt="">
+      <div class="popup-reason" id="quizQuestion"></div>
+      <div id="quizOptions">
+        <button class="quiz-option" onclick="selectQuizOption(0)" id="opt0">A</button>
+        <button class="quiz-option" onclick="selectQuizOption(1)" id="opt1">B</button>
+        <button class="quiz-option" onclick="selectQuizOption(2)" id="opt2">C</button>
+        <button class="quiz-option" onclick="selectQuizOption(3)" id="opt3">D</button>
+      </div>
+      <div class="popup-actions" id="quizActions">
+        <button class="btn btn-green" onclick="submitQuiz()">提交答案</button>
+        <button class="btn btn-outline" onclick="closeQuiz()">放弃</button>
+      </div>
+      <div id="quizResult" style="display:none">
+        <div class="popup-reason" id="quizAnswer"></div>
+        <div class="popup-reason" id="quizExplanation"></div>
+        <button class="btn btn-blue" onclick="closeQuiz()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meeting Day Splash -->
+  <div class="splash-overlay" id="meetingSplash">
+    <div class="splash-content">
+      <div class="splash-icon">❤️</div>
+      <div class="splash-msg">今天就是见面日啦！<br>快去找ta吧~</div>
+      <button class="btn btn-pink" onclick="closeSplash()">好耶！</button>
+    </div>
+  </div>
+
+  <div class="footer">🐷 + 🐭 = ❤️ · 2018.4.8 - ∞</div>
+</div>
+
+<script>
+// ==================== GLOBAL STATE ====================
+const isYou = true; // Fixed: you can only be "you", he can only be "ta"
+const deviceId = localStorage.getItem('couple_device_id') || (Math.random().toString(36).substr(2) + Date.now().toString(36));
+localStorage.setItem('couple_device_id', deviceId);
+let quizTimer = null;
+let quizSelectedOption = null;
+let quizStartTime = null;
+
+function getStoreKey(key) { return 'couple_' + key; }
+
+// ==================== MEETING DAY SPLASH ====================
+function checkMeetingDay() {
+  const today = new Date();
+  const target = new Date('2026-06-12T00:00:00');
+  const isMeetingDay = today.getFullYear() === target.getFullYear() &&
+                      today.getMonth() === target.getMonth() &&
+                      today.getDate() === target.getDate();
+  if (isMeetingDay) {
+    document.getElementById('meetingSplash').classList.add('show');
+    for (let i=0;i<30;i++) {
+      const p = document.createElement('div');
+      p.className='splash-particle';
+      p.textContent=['❤️','💖','💕','💓','💗','✨','🌟','💫'][Math.floor(Math.random()*8)];
+      p.style.left=Math.random()*100+'%';
+      p.style.top=Math.random()*100+'%';
+      document.getElementById('meetingSplash').appendChild(p);
+    }
+  }
+}
+function closeSplash() { document.getElementById('meetingSplash').classList.remove('show'); }
+
+// ==================== COUNTDOWN ====================
+const targetDate = new Date('2026-06-12T00:00:00'); // 下次见面
+function updateCountdown() {
+  const now = new Date();
+  const diff = targetDate - now;
+  if (diff <= 0) {
+    document.getElementById('cd-days').textContent = '0';
+    document.getElementById('cd-hours').textContent = '0';
+    document.getElementById('cd-mins').textContent = '0';
+    document.getElementById('cd-secs').textContent = '0';
+    return;
+  }
+  const days = Math.floor(diff / (1000*60*60*24));
+  const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+  const mins = Math.floor((diff % (1000*60*60)) / (1000*60));
+  const secs = Math.floor((diff % (1000*60)) / 1000);
+  document.getElementById('cd-days').textContent = days;
+  document.getElementById('cd-hours').textContent = hours;
+  document.getElementById('cd-mins').textContent = mins;
+  document.getElementById('cd-secs').textContent = secs;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+// ==================== MOOD ====================
+function getMood() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('mood')) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveMood(obj) { localStorage.setItem(getStoreKey('mood'), JSON.stringify(obj)); }
+
+function setMood(mood) {
+  const moodData = getMood();
+  moodData[deviceId] = { mood, time: Date.now() };
+  saveMood(moodData);
+  renderMood();
+}
+
+function renderMood() {
+  const moodData = getMood();
+  const entries = Object.entries(moodData);
+  if (entries.length === 0) {
+    document.getElementById('moodStatus').textContent = '对方还没有点亮心情';
+    return;
+  }
+  const latest = entries.sort((a,b)=>b[1].time - a[1].time)[0];
+  const who = latest[0] === deviceId ? '你' : (isYou ? '纯猪蛋' : 'mi鼠');
+  const moodText = latest[1].mood;
+  const time = new Date(latest[1].time).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('moodStatus').textContent = `${who} ${time} ${moodText}`;
+}
+
+document.querySelectorAll('.mood-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setMood(btn.dataset.mood);
+    btn.classList.add('active');
+    setTimeout(() => btn.classList.remove('active'), 300);
+  });
+});
+
+// ==================== MAP ====================
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+let mapAnimFrame = 0;
+function drawMap() {
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  canvas.width = w * (window.devicePixelRatio||1);
+  canvas.height = h * (window.devicePixelRatio||1);
+  ctx.setTransform(window.devicePixelRatio||1, 0, 0, window.devicePixelRatio||1, 0, 0);
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#e3f2fd'); grad.addColorStop(0.3, '#f3e5f5');
+  grad.addColorStop(0.7, '#fff3e0'); grad.addColorStop(1, '#fce4ec');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+
+  // Grid lines (subtle map feel)
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 0.5;
+  for (let i = 0; i < w; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); }
+  for (let j = 0; j < h; j += 30) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(w, j); ctx.stroke(); }
+
+  // Simplified China terrain outlines (decorative)
+  ctx.strokeStyle = 'rgba(180,140,120,0.2)'; ctx.fillStyle = 'rgba(200,180,160,0.12)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w*0.1, h*0.25); ctx.quadraticCurveTo(w*0.25, h*0.15, w*0.4, h*0.2);
+  ctx.quadraticCurveTo(w*0.55, h*0.1, w*0.7, h*0.12);
+  ctx.quadraticCurveTo(w*0.85, h*0.15, w*0.9, h*0.25);
+  ctx.quadraticCurveTo(w*0.88, h*0.6, w*0.7, h*0.8);
+  ctx.quadraticCurveTo(w*0.5, h*0.85, w*0.3, h*0.8);
+  ctx.quadraticCurveTo(w*0.15, h*0.65, w*0.1, h*0.25);
+  ctx.fill(); ctx.stroke();
+
+  // City positions: Chengdu (left-west), Jiashan (right-east)
+  const cx = w * 0.22, cy = h * 0.55;  // 成都 (western China)
+  const jx = w * 0.80, jy = h * 0.42;  // 嘉善 (eastern coast)
+
+  // Curved connection line
+  const midX = (cx + jx) / 2;
+  const midY = Math.min(cy, jy) - 40;
+
+  // Glow effect
+  ctx.shadowColor = 'rgba(255,107,157,0.4)'; ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.setLineDash([8, 4]);
+  ctx.strokeStyle = '#ff6b9d'; ctx.lineWidth = 2.8;
+  ctx.moveTo(cx, cy);
+  ctx.quadraticCurveTo(midX, midY, jx, jy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+
+  // Pulsing heart on the line
+  const t = 0.5 + Math.sin(mapAnimFrame * 0.03) * 0.15;
+  const hx = cx + (jx - cx) * t;
+  const hy = cy + (jy - cy) * t - Math.sin(t * Math.PI) * 35;
+  ctx.font = '22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('❤', hx, hy);
+
+  // Distance label
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#ff6b9d';
+  ctx.fillText('约 1800km', midX, midY - 10);
+
+  // Chengdu marker
+  drawCityMarker(cx, cy, '#ff6b9d', '成都');
+  // Jiashan marker
+  drawCityMarker(jx, jy, '#ff8e53', '嘉善');
+
+  // Small plane icon along the path
+  const pt = 0.3 + (mapAnimFrame * 0.01) % 0.6;
+  const px = cx + (jx - cx) * pt;
+  const py = cy + (jy - cy) * pt - Math.sin(pt * Math.PI) * 35 - 8;
+  ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('✈️', px, py);
+
+  mapAnimFrame++;
+  requestAnimationFrame(() => { if (canvas.isConnected) drawMap(); });
+}
+
+function drawCityMarker(x, y, color, name) {
+  // Outer ring
+  ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2);
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill();
+  // Inner dot
+  ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  // Name label
+  ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#333';
+  ctx.fillText(name, x, y + 28);
+}
+
+window.addEventListener('resize', () => { drawMap(); });
+drawMap();
+
+// ==================== QUESTION ====================
+const questions = [
+  '如果明天就能见面，你最想一起做什么？','你最喜欢我们在一起的哪个瞬间？',
+  '用一个词形容我们的关系，你会选哪个？','下次旅行你最想去哪里？为什么？',
+  '我做过什么事让你特别感动？','如果有时光机，你想回到我们哪一天？',
+  '你觉得我们最像哪对电影情侣？','你最期待我们未来的什么？',
+  '如果给我起一个专属昵称，会是什么？','我们之间最好笑的回忆是什么？',
+  '你觉得异地恋最难的地方是什么？','你理想中的约会一天是怎样的？',
+  '有没有哪首歌会让你想起我？','如果一起养宠物，你想养什么？',
+  '你最喜欢我身上哪个地方？（可以是非外貌的）','有没有哪部电影我们一起看的让你印象最深？',
+  '如果有一天我变成小动物，你觉得我会是什么？','你最想和我一起学什么新技能？',
+  '你觉得我们吵架后最好的和好方式是什么？','如果我们在同一个城市，周末通常怎么过？',
+  '你觉得你的朋友们怎么评价我们的关系？','你希望我改掉的一个小习惯是什么？',
+  '如果让你选一种花来代表我，你会选什么花？','你做过最勇敢的事情是什么？是因为我吗？',
+  '你觉得我们谁更浪漫？为什么？','你最想和我一起去哪个国家？',
+  '如果我们可以互换一天身体，你最想体验我的什么？','你觉得异地恋最大的收获是什么？',
+  '有没有哪个瞬间你觉得"就是这个人了"？','你最喜欢我穿什么颜色的衣服？',
+  '如果我们一起开一家店，你想开什么店？','你觉得我们谁先说出"我爱你"的应该是什么时候？',
+  '你心情不好的时候，我最应该做什么？','如果让你写一本关于我们的书，书名会是什么？',
+  '你有什么一直想做但还没机会做的事？','你觉得惊喜和日常陪伴哪个更重要？',
+  '如果可以回到过去改变一件事，你会改变什么？','你觉得我们老了以后会是什么样子？',
+  '你最想和我一起看的演唱会是谁的？','你觉得我什么时候最可爱？',
+  '如果我们只能保留一件回忆物品，你会选哪件？','你觉得异地期间最幸福的时刻是什么时候？',
+  '如果让你给我们的爱情打分，去掉一个最高分和一个最低分，还剩多少？','你喜欢的亲密方式是什么？（拥抱/牵手/摸头杀...）',
+  '你觉得你最了解我的哪一点？','如果我们吵架了，谁先低头？你觉得应该是谁？',
+  '你对我哪件事印象最深？（好的或不好的都可以）','如果允许你做一件疯狂的事，你会做什么？',
+  '你觉得我的朋友们怎么看我？','你期待我们婚礼是什么风格的？',
+  '你觉得距离对我们来说是考验还是催化剂？','你最近一次梦到我是什么时候？梦到了什么？',
+  '如果可以给我超能力，你想给我什么超能力？','你觉得爱一个人需要理由吗？你对我的理由是？',
+  '你最喜欢哪个季节和我在一起？','你觉得我们之间谁像猫谁像狗？',
+  '你觉得我什么时候对你最依赖？','你最近有没有偷偷关注我的社交动态？哪条最打动你？',
+  '如果让你用一个emoji来总结我，你会选哪个？','你最想和我一起去的地方是哪里？不限制预算的话。',
+  '你觉得异地期间你最大的变化是什么？','你最想听我唱哪首歌？',
+  '你觉得什么小细节最能代表我们的默契？','如果可以改变我们相遇的方式，你会改成什么样？',
+  '你觉得日常生活中什么样的小事会让你想到我？','你最期待的下次约会地点是哪里？',
+  '如果我们在一起做一顿饭，你负责什么？','你觉得我们适合一起创业吗？做什么？',
+  '你觉得异地期间最艰难的时刻是什么？怎么熬过来的？','你最喜欢我不经意间说什么话？',
+  '如果你把我的照片设成手机壁纸了，是哪一张？','你觉得一起打游戏是不是增进感情的方式？',
+  '你理想中的家是什么样子的？','你觉得我身上有什么是别人没有发现的宝藏特质？',
+  '什么情况下你会特别想立刻飞到我身边？','你觉得爱情里仪式感重要吗？你想要什么样的仪式感？',
+  '如果可以重新选择，你还会选择异地吗？','你觉得我们之间最默契的一件事是什么？',
+  '你觉得我哄你的方式哪次最让你满意？','如果让你给我写一封情书，第一句会是什么？',
+  '你最想和我一起尝试的运动是什么？','你觉得思念一个人到极致是什么感觉？',
+  '你觉得情侣之间需要多大的个人空间？','你觉得我做什么事会让你血压升高？',
+  '你有没有偷偷给我准备过什么惊喜？','如果我们的故事被拍成电影，你希望谁演我？',
+  '你觉得我笑起来好看还是不笑的时候好看？','你最近有没有学会什么新东西想和我分享？',
+  '你觉得情侣之间最不能触碰的底线是什么？','如果可以给过去的自己说一句话，关于我们的关系，你会说什么？',
+  '你觉得我们之间还需要磨合的方面是什么？','你最近有没有吃到什么特别好吃的东西想带我去？',
+  '你觉得什么样的晚安方式最能让你安心入睡？','你有没有觉得异地的某些时刻反而更甜？',
+  '你觉得我对你最大的影响是什么？','你觉得在一起之后你有什么保留或改变？',
+  '如果让你用一首歌来表达此刻对我的感觉，会是哪首？','你觉得争吵后的冷静时间多长合适？',
+  '你幻想过和我一起度过的最完美的一天是什么样的？','你最近有没有刷到什么好笑的想要分享给我？',
+];
+function randomQuestion() {
+  const card = document.getElementById('questionCard');
+  card.style.opacity='0';
+  setTimeout(()=>{ card.textContent=questions[Math.floor(Math.random()*questions.length)]; card.style.opacity='1'; },200);
+}
+randomQuestion();
+
+// ==================== DAILY QUIZ ====================
+const quizQuestions = [
+  {
+    question: '荷兰的国花是什么？',
+    options: ['郁金香','玫瑰','向日葵','樱花'],
+    answer: 0,
+    explanation: '荷兰被称为“郁金香王国”，郁金香是其国花。',
+    img: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&h=250&fit=crop'
+  },
+  {
+    question: '世界最高峰是哪座？',
+    options: ['珠穆朗玛峰','乔戈里峰','干城章嘉峰','洛子峰'],
+    answer: 0,
+    explanation: '珠穆朗玛峰海拔8848.86米，是世界最高峰。',
+    img: 'https://images.unsplash.com/photo-1580137189272-c9379f8864fd?w=400&h=250&fit=crop'
+  },
+  {
+    question: '埃菲尔铁塔位于哪个城市？',
+    options: ['巴黎','伦敦','罗马','柏林'],
+    answer: 0,
+    explanation: '埃菲尔铁塔是巴黎的标志性建筑，建于1889年。',
+    img: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=400&h=250&fit=crop'
+  },
+  {
+    question: '《蒙娜丽莎》的作者是谁？',
+    options: ['达·芬奇','米开朗基罗','拉斐尔','梵高'],
+    answer: 0,
+    explanation: '《蒙娜丽莎》是文艺复兴时期达·芬奇的杰作。',
+    img: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=250&fit=crop'
+  },
+  {
+    question: '哪种动物是中国的国宝？',
+    options: ['大熊猫','金丝猴','东北虎','丹顶鹤'],
+    answer: 0,
+    explanation: '大熊猫是中国特有物种，被誉为“国宝”。',
+    img: 'https://images.unsplash.com/photo-1525382455947-f319bc05fb35?w=400&h=250&fit=crop'
+  },
+  {
+    question: '太阳系中最大的行星是？',
+    options: ['木星','土星','地球','火星'],
+    answer: 0,
+    explanation: '木星是太阳系中体积和质量最大的行星。',
+    img: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=400&h=250&fit=crop'
+  },
+  {
+    question: '《哈利·波特》的作者是？',
+    options: ['J.K.罗琳','托尔金','刘易斯','乔治·马丁'],
+    answer: 0,
+    explanation: 'J.K.罗琳是《哈利·波特》系列的作者。',
+    img: 'https://images.unsplash.com/photo-1621351183012-e2f9972dd9bf?w=400&h=250&fit=crop'
+  }
+];
+
+function getQuizState() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('quizState')) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveQuizState(obj) { localStorage.setItem(getStoreKey('quizState'), JSON.stringify(obj)); }
+
+function getScores() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('quizScores')) || '{ "you":0, "ta":0 }'); }
+  catch(e) { return { you:0, ta:0 }; }
+}
+function saveScores(obj) { localStorage.setItem(getStoreKey('quizScores'), JSON.stringify(obj)); }
+
+function updateScoreDisplay() {
+  const scores = getScores();
+  document.getElementById('scoreYou').textContent = scores.you;
+  document.getElementById('scoreTa').textContent = scores.ta;
+}
+
+function startDailyQuiz() {
+  const quizState = getQuizState();
+  const today = new Date().toDateString();
+  if (quizState.lastPlayDate === today && quizState.answered) {
+    alert('今日已答过题啦，明天再来吧~');
+    return;
+  }
+  const day = Math.floor((new Date() - new Date('2018-04-08')) / (1000*60*60*24));
+  const quiz = quizQuestions[day % quizQuestions.length];
+  document.getElementById('quizDayTitle').textContent = `第${(day % 100)+1}天 · 知识挑战`;
+  document.getElementById('quizTitle').textContent = '每日竞猜';
+  document.getElementById('quizQuestion').textContent = quiz.question;
+  document.getElementById('quizImg').src = quiz.img;
+  for (let i=0;i<4;i++) {
+    const opt = document.getElementById('opt'+i);
+    opt.textContent = String.fromCharCode(65+i) + '. ' + quiz.options[i];
+    opt.classList.remove('selected','correct','wrong');
+  }
+  document.getElementById('quizActions').style.display = 'block';
+  document.getElementById('quizResult').style.display = 'none';
+  document.getElementById('quizPopup').classList.add('show');
+  quizSelectedOption = null;
+  quizStartTime = Date.now();
+  let timeLeft = 30;
+  document.getElementById('quizBadge').textContent = timeLeft + '秒';
+  clearInterval(quizTimer);
+  quizTimer = setInterval(() => {
+    timeLeft--;
+    document.getElementById('quizBadge').textContent = timeLeft + '秒';
+    if (timeLeft <= 0) {
+      clearInterval(quizTimer);
+      submitQuiz();
+    }
+  }, 1000);
+}
+
+function selectQuizOption(idx) {
+  document.querySelectorAll('.quiz-option').forEach(opt => opt.classList.remove('selected'));
+  document.getElementById('opt'+idx).classList.add('selected');
+  quizSelectedOption = idx;
+}
+
+function submitQuiz() {
+  if (quizSelectedOption === null) {
+    alert('请先选择一个答案！');
+    return;
+  }
+  clearInterval(quizTimer);
+  const today = new Date().toDateString();
+  const day = Math.floor((new Date() - new Date('2018-04-08')) / (1000*60*60*24));
+  const quiz = quizQuestions[day % quizQuestions.length];
+  const isCorrect = quizSelectedOption === quiz.answer;
+  const timeUsed = Math.floor((Date.now() - quizStartTime) / 1000);
+  document.querySelectorAll('.quiz-option').forEach((opt, idx) => {
+    opt.classList.remove('selected');
+    if (idx === quiz.answer) opt.classList.add('correct');
+    if (idx === quizSelectedOption && idx !== quiz.answer) opt.classList.add('wrong');
+  });
+  document.getElementById('quizAnswer').textContent =
+    `正确答案：${String.fromCharCode(65+quiz.answer)}. ${quiz.options[quiz.answer]}`;
+  document.getElementById('quizExplanation').textContent = `解析：${quiz.explanation}`;
+  document.getElementById('quizActions').style.display = 'none';
+  document.getElementById('quizResult').style.display = 'block';
+  const quizState = getQuizState();
+  quizState.lastPlayDate = today;
+  quizState.answered = true;
+  quizState.lastAnswer = isCorrect;
+  quizState.lastTime = timeUsed;
+  saveQuizState(quizState);
+  if (isCorrect) {
+    const scores = getScores();
+    scores[isYou ? 'you' : 'ta'] += 1;
+    saveScores(scores);
+    updateScoreDisplay();
+    triggerEasterEgg();
+  }
+}
+
+function closeQuiz() {
+  document.getElementById('quizPopup').classList.remove('show');
+  updateScoreDisplay();
+}
+
+// ==================== EASTER EGG ====================
+function triggerEasterEgg() {
+  if (Math.random() < 0.3) {
+    const eggs = ['✨', '🌟', '💫', '🎉', '🥳', '🎊', '🦄', '🐱', '🐶', '🐼', '🦊', '🐰'];
+    const egg = eggs[Math.floor(Math.random() * eggs.length)];
+    const easterEgg = document.createElement('div');
+    easterEgg.className = 'easter-egg';
+    easterEgg.textContent = egg;
+    easterEgg.style.left = Math.random() * 80 + 10 + '%';
+    easterEgg.style.top = '90%';
+    easterEgg.style.fontSize = (Math.random() * 30 + 20) + 'px';
+    document.body.appendChild(easterEgg);
+    setTimeout(() => { document.body.removeChild(easterEgg); }, 3000);
+  }
+}
+
+// ==================== COMPLAINT SYSTEM ====================
+function getComplaints() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('complaints')) || '[]'); }
+  catch(e) { return []; }
+}
+function saveComplaints(list) { localStorage.setItem(getStoreKey('complaints'), JSON.stringify(list)); }
+
+function submitComplaint() {
+  if (!isYou) return alert('只有mi鼠可以发起投诉');
+  const reason = document.getElementById('complaintReason').value.trim();
+  if (!reason) return alert('请写下生气的原因');
+  const list = getComplaints();
+  list.push({
+    id: Date.now(),
+    reason,
+    from: 'you',
+    to: 'ta',
+    status: 'pending',
+    time: new Date().toLocaleString('zh-CN'),
+    reply: '',
+    device: deviceId
+  });
+  saveComplaints(list);
+  document.getElementById('complaintReason').value = '';
+  document.getElementById('complaintForm').classList.remove('show');
+  renderComplaints();
+}
+
+function handleComplaint(action) {
+  const popupId = parseInt(document.getElementById('complaintPopup').dataset.complaintId);
+  const list = getComplaints();
+  const item = list.find(c => c.id === popupId);
+  if (item) {
+    if (action === 'done') item.status = 'done';
+    else item.status = 'pending';
+    item.reply = action === 'done' ? '已改正 🙇' : '';
+  }
+  saveComplaints(list);
+  document.getElementById('complaintPopup').classList.remove('show');
+  renderComplaints();
+}
+
+function rejectComplaint(id) {
+  if (!isYou) return;
+  const list = getComplaints();
+  const item = list.find(c => c.id === id);
+  if (item) { item.status = 'rejected'; item.reply = '不满意，重新处理！'; }
+  saveComplaints(list);
+  renderComplaints();
+}
+
+function handleComplaintDirect(id, action) {
+  if (!isYou && action === 'done') {
+    const list = getComplaints();
+    const item = list.find(c => c.id === id);
+    if (item) { item.status = action; item.reply = '已改正 🙇'; }
+    saveComplaints(list);
+    renderComplaints();
+  }
+}
+
+function renderComplaints() {
+  const list = getComplaints();
+  const container = document.getElementById('complaintList');
+  const badge = document.getElementById('complaintBadge');
+  const hint = document.getElementById('complaintHint');
+  if (isYou) {
+    hint.textContent = '只有mi鼠可以发起投诉，纯猪蛋只能处理';
+    const pendingForTa = list.filter(c => c.to === 'ta' && c.status === 'pending');
+    badge.textContent = pendingForTa.length;
+    badge.style.display = pendingForTa.length > 0 ? 'inline-block' : 'none';
+  } else {
+    hint.textContent = '纯猪蛋只能处理投诉，不能发起';
+    document.getElementById('btnAddComplaint').style.display = 'none';
+    const pendingForMe = list.filter(c => c.to === 'ta' && c.status === 'pending');
+    badge.textContent = pendingForMe.length;
+    badge.style.display = pendingForMe.length > 0 ? 'inline-block' : 'none';
+  }
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">暂无投诉记录，岁月静好~</div>';
+    return;
+  }
+  container.innerHTML = list.slice().reverse().map(c => {
+    const isFromYou = c.from === 'you';
+    const isToYou = c.to === 'ta';
+    const who = isFromYou ? 'mi鼠' : '纯猪蛋';
+    const statusClass = c.status;
+    const statusText = c.status === 'pending' ? '待处理' : c.status === 'done' ? '已处理' : '已驳回';
+    const canReject = isYou && c.status === 'done' && !isFromYou;
+    const canHandle = !isYou && c.status === 'pending' && isToYou;
+    return `<div class="complaint-item ${c.status}">
+      <div class="complaint-reason">${c.reason}</div>
+      <div class="complaint-meta">
+        ${c.time} · ${isFromYou ? 'mi鼠 → 纯猪蛋' : '纯猪蛋 → mi鼠'}
+        <span class="complaint-status status-${statusClass}">${statusText}</span>
+      </div>
+      ${c.reply ? '<div class="complaint-meta">💬 ' + c.reply + '</div>' : ''}
+      <div class="complaint-actions">
+        ${canHandle ? `<button class="btn btn-green btn-sm" onclick="handleComplaintDirect(${c.id},'done')">已改正</button>` : ''}
+        ${canReject ? `<button class="btn btn-orange btn-sm" onclick="rejectComplaint(${c.id})">不满意</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleComplaintForm() {
+  document.getElementById('complaintForm').classList.toggle('show');
+}
+
+function checkPendingComplaints() {
+  if (!isYou) return;
+  const list = getComplaints();
+  const pending = list.find(c => c.to === 'ta' && c.status === 'pending' && c.device !== deviceId);
+  if (pending) {
+    document.getElementById('complaintPopup').dataset.complaintId = pending.id;
+    document.getElementById('popupReason').textContent = pending.reason;
+    document.getElementById('complaintPopup').classList.add('show');
+  }
+}
+
+// ==================== MEMORY PHOTO WALL ====================
+function getPhotos() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('photos')) || '[]'); }
+  catch(e) { return []; }
+}
+function savePhotos(list) { localStorage.setItem(getStoreKey('photos'), JSON.stringify(list)); }
+
+function uploadPhoto() {
+  const url = document.getElementById('photoUrl').value.trim();
+  const date = document.getElementById('photoDate').value.trim() || new Date().toLocaleDateString('zh-CN');
+  if (!url) return alert('请粘贴图片链接');
+  if (!url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)) {
+    if (!confirm('链接可能不是图片格式，继续添加吗？')) return;
+  }
+  const list = getPhotos();
+  list.push({ id: Date.now(), url, date, added: new Date().toLocaleString('zh-CN') });
+  savePhotos(list);
+  document.getElementById('photoUrl').value = '';
+  document.getElementById('photoDate').value = '';
+  document.getElementById('memoryUpload').classList.remove('show');
+  renderPhotos();
+}
+
+function renderPhotos() {
+  const photos = getPhotos();
+  const wall = document.getElementById('memoryWall');
+  const today = document.getElementById('memoryToday');
+  if (photos.length > 0) {
+    const todayStr = new Date().toDateString();
+    const seed = todayStr.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    const idx = seed % photos.length;
+    const photo = photos[idx];
+    today.innerHTML = `
+      <div class="memory-today">
+        <div>今日回忆 · ${photo.date}</div>
+        <img src="${photo.url}" alt="今日回忆" class="today-photo" onerror="this.style.display='none'">
+      </div>
+    `;
+  } else {
+    today.innerHTML = '<div class="memory-today">还没有照片，上传第一张回忆吧 📸</div>';
+  }
+  wall.innerHTML = photos.slice(-6).map(p => `
+    <div class="memory-photo-item" onclick="showPhoto('${p.url}')">
+      <img src="${p.url}" alt="${p.date}" onerror="this.style.display='none'">
+      <div class="photo-date">${p.date}</div>
+    </div>
+  `).join('');
+}
+
+function showPhoto(url) {
+  window.open(url, '_blank');
+}
+
+function toggleMemoryUpload() {
+  document.getElementById('memoryUpload').classList.toggle('show');
+}
+
+// ==================== TO-DO LIST (AI Enhanced) ====================
+function getTodos() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('todos')) || '[]'); }
+  catch(e) { return []; }
+}
+function saveTodos(list) { localStorage.setItem(getStoreKey('todos'), JSON.stringify(list)); }
+
+const typeIcons = { play:'🎮', eat:'🍜', go:'✈️', watch:'🎬', buy:'🛍️' };
+const typeNames = { play:'想玩', eat:'想吃', go:'想去', watch:'想看', buy:'想买' };
+
+async function addTodo() {
+  const title = document.getElementById('todoTitle').value.trim();
+  const type = document.getElementById('todoType').value;
+  const notes = document.getElementById('todoNotes').value.trim();
+  if (!title) return alert('请填写内容');
+  const list = getTodos();
+  const todo = {
+    id: Date.now(),
+    title,
+    type,
+    notes,
+    added: new Date().toLocaleString('zh-CN'),
+    aiInfo: null,
+    aiLoading: true
+  };
+  list.push(todo);
+  saveTodos(list);
+  document.getElementById('todoTitle').value = '';
+  document.getElementById('todoNotes').value = '';
+  document.getElementById('todoForm').classList.remove('show');
+  renderTodos();
+  setTimeout(() => fetchAIInfo(todo.id, title, type), 500);
+}
+
+async function fetchAIInfo(id, title, type) {
+  const mockResponses = {
+    play: `推荐指数：★★★★☆\n适合情侣一起玩，操作简单有趣。建议游玩时间2-3小时，可以增进默契。`,
+    eat: `推荐指数：★★★★★\n这家餐厅在情侣中口碑很好，环境浪漫，人均¥150左右。招牌菜是黑椒牛柳和提拉米苏。`,
+    go: `推荐指数：★★★★☆\n风景优美，适合拍照打卡。最佳季节是春秋季，建议游玩2天1夜。附近有特色民宿。`,
+    watch: `推荐指数：★★★☆☆\nIMDb评分7.5，爱情片，结局温馨。片长120分钟，适合周末晚上一起看。`,
+    buy: `推荐指数：★★★★☆\n性价比高，实用性强。建议等促销时购买，可以节省30%左右。`
+  };
+  const mockTips = {
+    play: '记得提前预约，周末人比较多。',
+    eat: '可以提前打电话订窗边位置。',
+    go: '避开节假日高峰期，体验更好。',
+    watch: '准备点零食饮料，氛围更佳。',
+    buy: '对比几个平台价格再下单。'
+  };
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  const list = getTodos();
+  const todo = list.find(t => t.id === id);
+  if (todo) {
+    todo.aiLoading = false;
+    todo.aiInfo = {
+      rating: '★★★★☆',
+      summary: mockResponses[type] || '暂无AI推荐信息',
+      tip: mockTips[type] || '暂无小贴士',
+      source: 'AI推荐'
+    };
+    saveTodos(list);
+    renderTodos();
+  }
+}
+
+function renderTodos() {
+  const todos = getTodos();
+  const container = document.getElementById('todoList');
+  const badge = document.getElementById('todoBadge');
+  badge.textContent = todos.length;
+  badge.style.display = todos.length > 0 ? 'inline-block' : 'none';
+  if (todos.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没添加心愿，记录想一起做的事吧~</div>';
+    return;
+  }
+  container.innerHTML = todos.slice().reverse().map(t => {
+    const aiContent = t.aiLoading
+      ? '<div class="todo-ai ai-loading">🔍 AI正在搜索推荐信息...</div>'
+      : t.aiInfo
+        ? `<div class="todo-ai">
+            <div class="ai-title">${t.aiInfo.source} ${t.aiInfo.rating}</div>
+            <div>${t.aiInfo.summary}</div>
+            <div style="margin-top:4px;color:#888;font-size:11px">💡 ${t.aiInfo.tip}</div>
+          </div>`
+        : '';
+    return `<div class="todo-item">
+      <div class="todo-title">${typeIcons[t.type]} ${t.title}</div>
+      <span class="todo-type">${typeNames[t.type]}</span>
+      <div class="todo-meta">${t.added}${t.notes ? ' · ' + t.notes : ''}</div>
+      ${aiContent}
+    </div>`;
+  }).join('');
+}
+
+function toggleTodoForm() {
+  document.getElementById('todoForm').classList.toggle('show');
+}
+
+// ==================== GAME INVITATION ====================
+function getGames() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('games')) || '[]'); }
+  catch(e) { return []; }
+}
+function saveGames(list) { localStorage.setItem(getStoreKey('games'), JSON.stringify(list)); }
+
+function toggleGameForm() {
+  document.getElementById('gameForm').classList.toggle('show');
+}
+
+function submitGameInvite() {
+  const gameName = document.getElementById('gameName').value;
+  const gameTime = document.getElementById('gameTime').value.trim();
+  const note = document.getElementById('gameNote').value.trim();
+  if (!gameTime) return alert('请填写邀约时间');
+  const list = getGames();
+  list.push({
+    id: Date.now(),
+    gameName,
+    gameTime,
+    note: note || '',
+    from: 'you',
+    status: 'pending',
+    time: new Date().toLocaleString('zh-CN')
+  });
+  saveGames(list);
+  document.getElementById('gameTime').value = '';
+  document.getElementById('gameNote').value = '';
+  document.getElementById('gameForm').classList.remove('show');
+  renderGames();
+}
+
+function handleGame(id, action) {
+  const list = getGames();
+  const item = list.find(g => g.id === id);
+  if (item) item.status = action;
+  saveGames(list);
+  renderGames();
+}
+
+function renderGames() {
+  const list = getGames();
+  const container = document.getElementById('gameList');
+  const badge = document.getElementById('gameBadge');
+  const pendingCount = list.filter(g => g.status === 'pending').length;
+  badge.textContent = pendingCount;
+  badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">暂无游戏邀约，发起一局吧~</div>';
+    return;
+  }
+  container.innerHTML = list.slice().reverse().map(g => {
+    const fromYou = g.from === 'you';
+    const fromLabel = fromYou ? 'mi鼠' : '纯猪蛋';
+    const statusMap = { pending: '待确认', accepted: '已接受', rejected: '已拒绝' };
+    const statusClass = g.status;
+    const canAct = !isYou && g.status === 'pending';
+    return `<div class="game-item ${g.status}">
+      <div class="game-from">${fromLabel} · ${g.time}</div>
+      <div class="game-header">
+        <span class="game-name">🎮 ${g.gameName}</span>
+        <span class="game-status ${statusClass}">${statusMap[g.status]}</span>
+      </div>
+      <div class="game-info">
+        <div>⏰ 时间：${g.gameTime}</div>
+        ${g.note ? '<div>💬 ' + g.note + '</div>' : ''}
+      </div>
+      ${canAct ? `<div class="game-actions">
+        <button class="btn-accept" onclick="handleGame(${g.id},'accepted')">✅ 接受</button>
+        <button class="btn-reject" onclick="handleGame(${g.id},'rejected')">❌ 拒绝</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ==================== DAILY SHARE ====================
+function getShares() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('shares')) || '[]'); }
+  catch(e) { return []; }
+}
+function saveShares(list) { localStorage.setItem(getStoreKey('shares'), JSON.stringify(list)); }
+
+function toggleShareForm() {
+  document.getElementById('shareForm').classList.toggle('show');
+}
+
+function submitShare() {
+  const type = document.getElementById('shareType').value;
+  const content = document.getElementById('shareContent').value.trim();
+  if (!content) return alert('请填写分享内容');
+  const list = getShares();
+  const typeMap = {
+    inspiration: '💡 灵感想法', book: '📚 读书笔记',
+    food: '🍜 美食记录', health: '💩 健康状态',
+    mood: '😊 心情随笔', work: '💼 工作学习'
+  };
+  list.push({
+    id: Date.now(),
+    type,
+    content,
+    time: new Date().toLocaleString('zh-CN')
+  });
+  saveShares(list);
+  document.getElementById('shareContent').value = '';
+  document.getElementById('shareForm').classList.remove('show');
+  renderShares();
+}
+
+function renderShares() {
+  const list = getShares();
+  const container = document.getElementById('shareList');
+  const badge = document.getElementById('shareBadge');
+  badge.textContent = list.length;
+  badge.style.display = list.length > 0 ? 'inline-block' : 'none';
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没有分享，记录今天的小事吧~</div>';
+    return;
+  }
+  container.innerHTML = list.slice().reverse().map(s => {
+    const typeMap = {
+      inspiration: '💡 灵感想法', book: '📚 读书笔记',
+      food: '🍜 美食记录', health: '💩 健康状态',
+      mood: '😊 心情随笔', work: '💼 工作学习'
+    };
+    return `<div class="share-item">
+      <span class="share-tag">${typeMap[s.type]}</span>
+      <div class="share-content">${s.content}</div>
+      <div class="share-meta">
+        <span>${s.time}</span>
+        <span>${s.type === 'you' ? 'mi鼠' : '纯猪蛋'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== PERSONAL TODO ====================
+function getPersonalTodos() {
+  try { return JSON.parse(localStorage.getItem(getStoreKey('personalTodos')) || '[]'); }
+  catch(e) { return []; }
+}
+function savePersonalTodos(list) { localStorage.setItem(getStoreKey('personalTodos'), JSON.stringify(list)); }
+
+function togglePersonalTodoForm() {
+  document.getElementById('personalTodoForm').classList.toggle('show');
+}
+
+function addPersonalTodo() {
+  const text = document.getElementById('personalTodoText').value.trim();
+  if (!text) return alert('请填写任务内容');
+  const list = getPersonalTodos();
+  list.push({
+    id: Date.now(),
+    text,
+    done: false,
+    time: new Date().toLocaleString('zh-CN')
+  });
+  savePersonalTodos(list);
+  document.getElementById('personalTodoText').value = '';
+  document.getElementById('personalTodoForm').classList.remove('show');
+  renderPersonalTodos();
+}
+
+function togglePersonalTodo(id) {
+  const list = getPersonalTodos();
+  const item = list.find(t => t.id === id);
+  if (item) item.done = !item.done;
+  savePersonalTodos(list);
+  renderPersonalTodos();
+}
+
+function renderPersonalTodos() {
+  const list = getPersonalTodos();
+  const container = document.getElementById('personalTodoList');
+  const badge = document.getElementById('personalTodoBadge');
+  const doneCount = list.filter(t => t.done).length;
+  const totalCount = list.length;
+  badge.textContent = `${doneCount}/${totalCount}`;
+  badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没有待办任务，添加今日计划吧~</div>';
+    return;
+  }
+  container.innerHTML = list.slice().reverse().map(t => `
+    <div class="personal-todo-item">
+      <div class="todo-check ${t.done ? 'checked' : ''}" onclick="togglePersonalTodo(${t.id})"></div>
+      <div class="todo-text ${t.done ? 'done' : ''}">${t.text}</div>
+    </div>
+  `).join('');
+}
+
+// ==================== HOROSCOPE ====================
+function renderHoroscope() {
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  const cancerTexts = [
+    '今天适合宅家享受二人世界，温馨的氛围能增进感情。',
+    '情绪敏感，需要对方的理解和安慰，别把心事憋在心里。',
+    '适合一起规划未来，讨论共同的目标会让关系更紧密。',
+    '小惊喜能带来大快乐，为对方准备一份小礼物吧。'
+  ];
+  const capricornTexts = [
+    '工作再忙也要抽时间联系，一句问候就能让对方安心。',
+    '务实的态度能解决实际问题，一起处理生活琐事吧。',
+    '责任感强，但别给自己太大压力，适当放松很重要。',
+    '长期规划需要双方共同努力，今天适合讨论未来计划。'
+  ];
+  const cancerLucky = ['粉色水晶', '毛绒玩具', '热奶茶', '手写信'];
+  const capricornLucky = ['黑色笔记本', '咖啡', '皮质钱包', '绿植'];
+  const cancerText = cancerTexts[day % 4];
+  const capricornText = capricornTexts[day % 4];
+  document.getElementById('horoscopeGrid').innerHTML = `
+    <div class="horoscope-card">
+      <div class="sign-icon">♋️</div>
+      <div class="sign-name">巨蟹座 · mi鼠 · 6.26</div>
+      <div class="sign-date">${month}月${day}日</div>
+      <div class="horoscope-text">${cancerText}</div>
+      <div class="lucky-item">幸运物：${cancerLucky[day % 4]}</div>
+    </div>
+    <div class="horoscope-card">
+      <div class="sign-icon">♑️</div>
+      <div class="sign-name">摩羯座 · 纯猪蛋 · 12.30</div>
+      <div class="sign-date">${month}月${day}日</div>
+      <div class="horoscope-text">${capricornText}</div>
+      <div class="lucky-item">幸运物：${capricornLucky[day % 4]}</div>
+    </div>
+  `;
+}
+
+// ==================== INIT ====================
+function initRoleUI() {
+  if (isYou) {
+    document.getElementById('roleInfo').textContent = '🐭 mi鼠的页面';
+    document.getElementById('roleTag').textContent = '投诉权限：mi鼠';
+  } else {
+    document.getElementById('roleInfo').textContent = '🐷 纯猪蛋的页面';
+    document.getElementById('roleTag').textContent = '处理权限：纯猪蛋';
+    document.getElementById('btnAddComplaint').style.display = 'none';
+  }
+}
+
+function renderAll() {
+  renderComplaints();
+  renderGames();
+  renderPhotos();
+  renderTodos();
+  renderShares();
+  renderPersonalTodos();
+  renderHoroscope();
+  renderMood();
+  updateScoreDisplay();
+}
+
+// ==================== START ====================
+checkMeetingDay();
+initRoleUI();
+renderAll();
+checkPendingComplaints();
+setInterval(() => {
+  checkPendingComplaints();
+  renderAll();
+}, 5000);
+
+// Preload some example photos
+if (getPhotos().length === 0) {
+  const examplePhotos = [
+    { url: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=400&h=300&fit=crop', date: '第一次约会' },
+    { url: 'https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?w=400&h=300&fit=crop', date: '海边旅行' },
+    { url: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=300&fit=crop', date: '生日惊喜' }
+  ];
+  savePhotos(examplePhotos);
+  renderPhotos();
+}
+</script>
+</body>
+</html>
