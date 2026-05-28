@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 {
   "functions": {
     "api/upload.js": {
@@ -5,4 +6,16 @@
       "maxDuration": 10
     }
   }
+=======
+﻿{
+  "version": 2,
+  "builds": [
+    { "src": "api/upload.js", "use": "@vercel/node" },
+    { "src": "api/list-photos.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/upload", "dest": "/api/upload.js" },
+    { "src": "/api/list-photos", "dest": "/api/list-photos.js" }
+  ]
+>>>>>>> Stashed changes
 }
