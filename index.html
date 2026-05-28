@@ -453,7 +453,7 @@
   <!-- Memory Photo Wall (READ-ONLY - no upload) -->
   <div class="section">
     <div class="section-title">
-      <span class="icon">📸</span>回忆相册
+      <span class="icon">🍂</span>北风毫不留情，把叶子吹落
       <span id="photoBadge" class="badge" style="display:none">0</span>
     </div>
     <div class="section-hint">我们的回忆，由后端统一管理</div>
@@ -463,9 +463,9 @@
     <!-- 管理员上传区（仅mi鼠可见） -->
     <div id="adminUploadSection" style="display: none; margin-top: 20px;">
       <div class="section-title">
-        <span class="icon">🔧</span>管理员上传区
+        <span class="icon">🔧</span>上传管理
       </div>
-      <div class="section-hint">仅mi鼠可见，用于上传新照片到回忆相册</div>
+      <div class="section-hint">mi鼠和猪蛋弟均可上传和管理照片</div>
       
       <div style="background: #fff8f8; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
         <div style="font-size: 13px; color: #666; margin-bottom: 8px;">上传本地照片到 Firebase Storage：</div>
@@ -473,10 +473,6 @@
           <div style="flex: 1; min-width: 200px;">
             <div style="font-size: 12px; color: #888; margin-bottom: 4px;">选择图片：</div>
             <input type="file" id="photoFile" accept="image/*" style="width: 100%; padding: 8px; border: 1px solid #ffb3cc; border-radius: 8px; font-size: 13px; background: white;">
-          </div>
-          <div style="flex: 1; min-width: 150px;">
-            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">日期：</div>
-            <input type="text" id="photoDate" placeholder="2024-01-01" style="width: 100%; padding: 8px; border: 1px solid #ffb3cc; border-radius: 8px; font-size: 13px;">
           </div>
         </div>
         <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
@@ -1528,20 +1524,16 @@ function showPhoto(url) { window.open(url, '_blank'); }
 // ==================== ADMIN PHOTO UPLOAD (mi鼠 only) ====================
 function uploadPhoto() {
   requireAuth();
-  if (currentUser.username !== 'nanyilan') {
-    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">仅mi鼠可以上传照片</span>';
+  // 允许 mi鼠(nanyilan) 和 猪蛋弟(yueyansong) 上传
+  if (!['nanyilan', 'yueyansong'].includes(currentUser.username)) {
+    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">仅mi鼠和猪蛋弟可以上传照片</span>';
     return;
   }
   
   const fileInput = document.getElementById('photoFile');
-  const date = document.getElementById('photoDate').value.trim();
   
   if (!fileInput.files || fileInput.files.length === 0) {
     document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">请选择图片文件</span>';
-    return;
-  }
-  if (!date) {
-    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">请填写日期</span>';
     return;
   }
   
@@ -1570,7 +1562,7 @@ function uploadPhoto() {
         const photoData = { 
           id: photoId, 
           url: downloadURL, 
-          date, 
+          date: new Date().toISOString().split('T')[0], // 自动使用当天日期
           addedBy: currentUser.username,
           filename: file.name,
           size: file.size,
@@ -1597,14 +1589,13 @@ function uploadPhoto() {
 
 function clearPhotoForm() {
   document.getElementById('photoFile').value = '';
-  document.getElementById('photoDate').value = '';
   document.getElementById('uploadStatus').innerHTML = '';
   document.getElementById('uploadProgress').style.display = 'none';
 }
 
 function showAdminSection() {
   const section = document.getElementById('adminUploadSection');
-  if (currentUser.username === 'nanyilan') {
+  if (['nanyilan', 'yueyansong'].includes(currentUser.username)) {
     section.style.display = 'block';
   } else {
     section.style.display = 'none';
