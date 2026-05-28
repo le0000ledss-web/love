@@ -522,14 +522,16 @@
     <div id="gameList" class="game-list"></div>
     <button class="btn-outline" onclick="toggleGameForm()" style="width:100%;">+ 发起邀约</button>
     <div id="gameForm" class="game-form">
-      <select id="gameName" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      <select id="gameName" onchange="onGameNameChange()" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
         <option value="王者荣耀">王者荣耀</option>
         <option value="和平精英">和平精英</option>
         <option value="原神">原神</option>
         <option value="金铲铲之战">金铲铲之战</option>
         <option value="蛋仔派对">蛋仔派对</option>
+        <option value="杯杯倒满">杯杯倒满</option>
         <option value="其他">其他游戏</option>
       </select>
+      <input type="text" id="gameNameOther" placeholder="输入游戏名" style="display:none;width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
       <input type="text" id="gameTime" placeholder="邀约时间 (如：今晚8点)" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
       <input type="text" id="gameNote" placeholder="备注 (可选)" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
       <div style="display:flex;gap:8px;">
@@ -545,8 +547,16 @@
       <div class="popup-icon">⚖️</div>
       <div class="popup-title">收到投诉</div>
       <div id="popupReason" class="popup-reason"></div>
-      <div class="popup-actions">
-        <button class="btn btn-green" onclick="handleComplaint('done')">我错了，已改正</button>
+      <div id="popupApologyWrap" style="display:none;margin-top:12px;text-align:left;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;">写一段诚恳的道歉</div>
+        <textarea id="popupApologyText" placeholder="对不起..." style="width:100%;height:70px;border:1.5px solid #ffb3cc;border-radius:10px;padding:10px;font-size:13px;resize:vertical;font-family:inherit;outline:none;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-green" onclick="submitApology()" style="flex:1;">提交道歉</button>
+          <button class="btn btn-outline-sm" onclick="cancelApology()">取消</button>
+        </div>
+      </div>
+      <div id="popupActions" class="popup-actions">
+        <button class="btn btn-green" onclick="startApology()">我错了</button>
         <button class="btn btn-outline-sm" onclick="handleComplaint('pending')">稍后处理</button>
       </div>
     </div>
@@ -1558,15 +1568,43 @@ function handleComplaint(action) {
   const popupId = document.getElementById('complaintPopup').dataset.complaintId;
   if (!popupId) return;
 
+  // Only used for "稍后处理" now — apology path goes through submitApology.
+  if (action === 'pending') {
+    document.getElementById('complaintPopup').classList.remove('show');
+  }
+}
+
+function startApology() {
+  document.getElementById('popupActions').style.display = 'none';
+  document.getElementById('popupApologyWrap').style.display = 'block';
+  document.getElementById('popupApologyText').focus();
+}
+
+function cancelApology() {
+  document.getElementById('popupApologyWrap').style.display = 'none';
+  document.getElementById('popupActions').style.display = 'flex';
+  document.getElementById('popupApologyText').value = '';
+}
+
+function submitApology() {
+  requireAuth();
+  const popupId = document.getElementById('complaintPopup').dataset.complaintId;
+  if (!popupId) return;
+  const text = document.getElementById('popupApologyText').value.trim();
+  if (!text) return alert('写下你的道歉吧~');
+
   database.ref(getDataPath(`complaints/${popupId}`)).once('value').then(snapshot => {
     const item = snapshot.val();
     if (item) {
-      if (action === 'done') { item.status = 'done'; item.reply = '已改正 🙇'; }
-      else { item.status = 'pending'; }
+      item.status = 'done';
+      item.reply = text;
       database.ref(getDataPath(`complaints/${popupId}`)).set(item);
     }
   });
 
+  document.getElementById('popupApologyText').value = '';
+  document.getElementById('popupApologyWrap').style.display = 'none';
+  document.getElementById('popupActions').style.display = 'flex';
   document.getElementById('complaintPopup').classList.remove('show');
 }
 
@@ -1579,14 +1617,17 @@ function rejectComplaint(id) {
   });
 }
 
-function handleComplaintDirect(id, action) {
+function promptApologyInline(id) {
   requireAuth();
-  if (!currentUser.canComplain && action === 'done') {
-    database.ref(getDataPath(`complaints/${id}`)).once('value').then(snapshot => {
-      const item = snapshot.val();
-      if (item) { item.status = action; item.reply = '已改正 🙇'; database.ref(getDataPath(`complaints/${id}`)).set(item); }
-    });
-  }
+  if (currentUser.canComplain) return;
+  const text = prompt('写一段诚恳的道歉：');
+  if (text === null) return;
+  const trimmed = text.trim();
+  if (!trimmed) return alert('道歉不能为空~');
+  database.ref(getDataPath(`complaints/${id}`)).once('value').then(snapshot => {
+    const item = snapshot.val();
+    if (item) { item.status = 'done'; item.reply = trimmed; database.ref(getDataPath(`complaints/${id}`)).set(item); }
+  });
 }
 
 function renderComplaints(complaintsData) {
@@ -1621,7 +1662,7 @@ function renderComplaints(complaintsData) {
     let actions = '';
     if (!isFromYou && c.status === 'pending') {
       actions = `<div class="complaint-actions">
-        <button class="btn btn-green" onclick="handleComplaintDirect('${c.id}','done')">我错了，已改正</button>
+        <button class="btn btn-green" onclick="promptApologyInline('${c.id}')">我错了</button>
       </div>`;
     }
     if (isFromYou && currentUser && currentUser.canComplain && c.status === 'done') {
@@ -1900,7 +1941,12 @@ function toggleGameForm() { document.getElementById('gameForm').classList.toggle
 
 function submitGameInvite() {
   requireAuth();
-  const gameName = document.getElementById('gameName').value;
+  let gameName = document.getElementById('gameName').value;
+  if (gameName === '其他') {
+    const otherName = document.getElementById('gameNameOther').value.trim();
+    if (!otherName) return alert('请输入游戏名');
+    gameName = otherName;
+  }
   const gameTime = document.getElementById('gameTime').value.trim();
   const note = document.getElementById('gameNote').value.trim();
   if (!gameTime) return alert('请填写邀约时间');
@@ -1918,7 +1964,13 @@ function submitGameInvite() {
 
   document.getElementById('gameTime').value = '';
   document.getElementById('gameNote').value = '';
+  document.getElementById('gameNameOther').value = '';
   document.getElementById('gameForm').classList.remove('show');
+}
+
+function onGameNameChange() {
+  const sel = document.getElementById('gameName').value;
+  document.getElementById('gameNameOther').style.display = (sel === '其他') ? 'block' : 'none';
 }
 
 function handleGame(id, action) {
