@@ -213,6 +213,29 @@
     .memory-today { background:linear-gradient(135deg,#fff5f7,#fff0e6); border-radius:12px; padding:16px; text-align:center; margin-bottom:12px; }
     .memory-today .today-photo { width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:8px; }
 
+    /* Photo Comments */
+    .photo-comment-section { margin-top: 12px; text-align: left; }
+    .comment-list { margin-bottom: 8px; }
+    .comment-item { 
+      background: rgba(255,255,255,0.7); border-radius: 8px; padding: 8px 12px;
+      margin-bottom: 6px; font-size: 12px; display: flex; flex-wrap: wrap;
+      align-items: baseline; gap: 4px;
+    }
+    .comment-item .comment-who { font-weight: 600; color: #ff6b9d; }
+    .comment-item .comment-text { color: #555; flex: 1; }
+    .comment-item .comment-time { color: #bbb; font-size: 10px; }
+    .comment-empty { text-align: center; color: #ccc; font-size: 12px; padding: 8px; }
+    .comment-input-area {
+      display: flex; gap: 6px; margin-top: 8px;
+    }
+    .comment-input {
+      flex: 1; padding: 8px 12px; border: 1.5px solid #ffb3cc;
+      border-radius: 14px; font-size: 13px; outline: none; font-family: inherit;
+      background: rgba(255,255,255,0.9);
+    }
+    .comment-input:focus { border-color: #ff6b9d; }
+    .comment-submit-btn { white-space: nowrap; }
+
     /* Todo */
     .todo-item { background:#f8f9fa; border-radius:12px; padding:14px; margin-bottom:10px; }
     .todo-item .todo-title { font-size:14px; font-weight:600; color:#333; margin-bottom:4px; }
@@ -467,31 +490,7 @@
     <div id="memoryToday" class="memory-today">加载中...</div>
     <div id="memoryWall" class="memory-wall"></div>
     
-    <!-- 管理员上传区（仅mi鼠可见） -->
-    <div id="adminUploadSection" style="display: none; margin-top: 20px;">
-      <div class="section-title">
-        <span class="icon">🔧</span>上传管理
-      </div>
-      <div class="section-hint">mi鼠和猪蛋弟均可上传和管理照片</div>
-      
-      <div style="background: #fff8f8; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
-        <div style="font-size: 13px; color: #666; margin-bottom: 8px;">上传本地照片到腾讯云 COS：</div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 200px;">
-            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">选择图片：</div>
-            <input type="file" id="photoFile" accept="image/*" style="width: 100%; padding: 8px; border: 1px solid #ffb3cc; border-radius: 8px; font-size: 13px; background: white;">
-          </div>
-        </div>
-        <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
-          <button onclick="uploadPhoto()" style="background: #ff6b9d; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer;">上传照片</button>
-          <button onclick="clearPhotoForm()" style="background: #f0f0f0; color: #666; border: 1px solid #ddd; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer;">清空</button>
-          <div id="uploadProgress" style="flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; display: none;">
-            <div id="uploadProgressBar" style="height:100%; width:0%; background: #2ed573; transition: width 0.3s;"></div>
-          </div>
-        </div>
-        <div id="uploadStatus" style="font-size: 12px; margin-top: 8px; min-height: 20px;"></div>
-      </div>
-    </div>
+    
   </div>
 
   <!-- To-Do List (AI Enhanced) -->
@@ -649,9 +648,6 @@ function doLogin() {
 
   // Initialize app
   initApp();
-  
-  // Show admin section for mi鼠
-  showAdminSection();
 }
 
 function doLogout() {
@@ -1497,7 +1493,7 @@ function checkPendingComplaints(complaintsData) {
 }
 
 // ==================== MEMORY PHOTO WALL (READ-ONLY) ====================
-// Upload functionality removed - photos managed by backend only
+// Upload and delete functionality removed - photos managed by backend only
 
 function renderPhotos(photosData) {
   const photos = objectToArray(photosData);
@@ -1513,130 +1509,85 @@ function renderPhotos(photosData) {
       <div class="memory-today">
         <div>今日回忆 · ${photo.date}</div>
         <img src="${photo.url}" alt="今日回忆" class="today-photo" onerror="this.style.display='none'">
+        <div id="commentSection_${photo.id}" class="photo-comment-section">
+          <div class="comment-list" id="commentList_${photo.id}"></div>
+        </div>
       </div>
     `;
+    // Render comments for today's photo
+    setTimeout(() => renderComments(photo.id), 100);
   } else {
     today.innerHTML = '<div class="memory-today">还没有照片，照片由后端统一管理 📸</div>';
   }
 
   wall.innerHTML = photos.slice(-6).map(p => {
-    const isAdmin = currentUser && ['nanyilan', 'yueyansong'].includes(currentUser.username);
     const escapeUrl = p.url.replace(/'/g, "\\'");
-    const deleteBtn = isAdmin ? `<button class="photo-delete-btn" onclick="event.stopPropagation();deletePhoto('${p.id}')" title="删除照片">×</button>` : '';
-    
     return `
     <div class="memory-photo-item" onclick="showPhoto('${escapeUrl}')">
       <img src="${p.url}" alt="${p.date}" onerror="this.style.display='none'">
       <div class="photo-date">${p.date}</div>
-      ${deleteBtn}
     </div>
   `}).join('');
 }
 
-function deletePhoto(photoId) {
-  requireAuth();
-  
-  // 检查是否为管理员
-  if (!['nanyilan', 'yueyansong'].includes(currentUser.username)) {
-    alert('仅mi鼠和猪蛋弟可以删除照片');
-    return;
-  }
-  
-  if (!confirm('确定要删除这张照片吗？此操作不可恢复。')) {
-    return;
-  }
-  
-  database.ref(getDataPath(`photos/${photoId}`)).remove()
-    .then(() => {
-      console.log('照片删除成功:', photoId);
-    })
-    .catch(error => {
-      console.error('删除失败:', error);
-      alert('删除失败，请重试');
-    });
-}
-
 function showPhoto(url) { window.open(url, '_blank'); }
 
-// ==================== ADMIN PHOTO UPLOAD ====================
-// 使用腾讯云 COS 进行图片上传
-function uploadPhoto() {
+// ==================== PHOTO COMMENTS ====================
+function addComment(photoId) {
   requireAuth();
-  if (!['nanyilan', 'yueyansong'].includes(currentUser.username)) {
-    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">仅mi鼠和猪蛋弟可以上传照片</span>';
-    return;
-  }
-  
-  const fileInput = document.getElementById('photoFile');
-  if (!fileInput.files || fileInput.files.length === 0) {
-    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">请选择图片文件</span>';
-    return;
-  }
-  
-  const file = fileInput.files[0];
-  const photoId = Date.now().toString();
-  const cosKey = `photos/${currentUser.username}/${photoId}_${file.name}`;
-  
-  document.getElementById('uploadProgress').style.display = 'block';
-  document.getElementById('uploadProgressBar').style.width = '0%';
-  document.getElementById('uploadStatus').innerHTML = '<span style="color:#666;">上传中...</span>';
-  
-  // Step 1: 向 Vercel API 请求预签名上传 URL
-  fetch(UPLOAD_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: cosKey, contentType: file.type })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.error) throw new Error(data.error);
-    
-    // Step 2: 用预签名 URL 直传 COS
-    return fetch(data.uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: { 'Content-Type': file.type }
-    }).then(() => data);
-  })
-  .then(data => {
-    document.getElementById('uploadProgressBar').style.width = '100%';
-    
-    const photoData = { 
-      id: photoId, 
-      url: data.downloadUrl, 
-      date: new Date().toISOString().split('T')[0],
-      addedBy: currentUser.username,
-      filename: file.name,
-      size: file.size,
-      timestamp: Date.now()
-    };
-    
-    return database.ref(getDataPath(`photos/${photoId}`)).set(photoData);
-  })
-  .then(() => {
-    document.getElementById('uploadProgress').style.display = 'none';
-    document.getElementById('uploadStatus').innerHTML = '<span style="color:#2ed573;">上传成功！</span>';
-    clearPhotoForm();
-  })
-  .catch(err => {
-    document.getElementById('uploadProgress').style.display = 'none';
-    document.getElementById('uploadStatus').innerHTML = `<span style="color:#ff4757;">上传失败: ${err.message}</span>`;
+  const input = document.getElementById('commentInput_' + photoId);
+  const text = input.value.trim();
+  if (!text) return;
+
+  const commentId = Date.now().toString();
+  const commentData = {
+    id: commentId,
+    text: text,
+    from: isYou ? 'you' : 'ta',
+    username: currentUser.username,
+    displayName: currentUser.displayName,
+    emoji: currentUser.emoji,
+    time: new Date().toLocaleString('zh-CN'),
+    timestamp: Date.now()
+  };
+
+  database.ref(getDataPath(`photo_comments/${photoId}/${commentId}`)).set(commentData);
+  input.value = '';
+}
+
+function renderComments(photoId) {
+  const listEl = document.getElementById('commentList_' + photoId);
+  const sectionEl = document.getElementById('commentSection_' + photoId);
+  if (!listEl || !sectionEl) return;
+
+  database.ref(getDataPath(`photo_comments/${photoId}`)).once('value').then(snapshot => {
+    const comments = objectToArray(snapshot.val());
+    comments.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+    const commentsHtml = comments.length > 0
+      ? comments.map(c => {
+          const who = c.from === 'you' ? 'mi鼠' : '纯猪蛋';
+          return `<div class="comment-item">
+            <span class="comment-who">${c.emoji || ''} ${who}</span>
+            <span class="comment-text">${c.text}</span>
+            <span class="comment-time">${c.time}</span>
+          </div>`;
+        }).join('')
+      : '<div class="comment-empty">还没有评论，来说点什么吧~</div>';
+
+    listEl.innerHTML = commentsHtml;
+
+    // Add input area if not already present
+    if (!document.getElementById('commentInput_' + photoId)) {
+      const inputArea = document.createElement('div');
+      inputArea.className = 'comment-input-area';
+      inputArea.innerHTML = `
+        <input type="text" id="commentInput_${photoId}" class="comment-input" placeholder="写下评论...">
+        <button class="btn btn-outline-sm comment-submit-btn" onclick="addComment('${photoId}')">发送</button>
+      `;
+      sectionEl.appendChild(inputArea);
+    }
   });
-}
-
-function clearPhotoForm() {
-  document.getElementById('photoFile').value = '';
-  document.getElementById('uploadStatus').innerHTML = '';
-  document.getElementById('uploadProgress').style.display = 'none';
-}
-
-function showAdminSection() {
-  const section = document.getElementById('adminUploadSection');
-  if (['nanyilan', 'yueyansong'].includes(currentUser.username)) {
-    section.style.display = 'block';
-  } else {
-    section.style.display = 'none';
-  }
 }
 
 // ==================== TO-DO LIST (AI Enhanced) ====================
