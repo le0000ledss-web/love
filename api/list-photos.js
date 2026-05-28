@@ -1,4 +1,5 @@
 const COS = require('cos-nodejs-sdk-v5');
+const { createHash } = require('crypto');
 
 module.exports = async (req, res) => {
   // CORS
@@ -43,7 +44,7 @@ module.exports = async (req, res) => {
       .map(item => {
         const downloadUrl = `https://${bucket}.cos.${region}.myqcloud.com/${item.Key}`;
         // Generate a stable ID from the key
-        const id = Buffer.from(item.Key).toString('base64').replace(/[+/=]/g, '').slice(0, 16);
+        const id = createHash('md5').update(item.Key).digest('hex').slice(0, 16);
         return {
           id,
           key: item.Key,
