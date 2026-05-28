@@ -1892,8 +1892,6 @@ function toggleTodoDone(id) {
     database.ref(getDataPath(`todos/${id}`)).set(todo);
   });
 }
-  }).join('');
-}
 
 function toggleTodoForm() { document.getElementById('todoForm').classList.toggle('show'); }
 
