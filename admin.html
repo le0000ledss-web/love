@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>照片管理 - 后台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #ff6b9d; }
+    .sub { color: #888; font-size: 13px; margin-bottom: 30px; }
+
+    .upload-zone {
+      background: #16213e; border: 2px dashed #333; border-radius: 16px;
+      padding: 40px; text-align: center; cursor: pointer; transition: border-color 0.3s;
+    }
+    .upload-zone:hover { border-color: #ff6b9d; }
+    .upload-zone.drag-over { border-color: #2ed573; background: #1a2e1a; }
+
+    .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin: 20px 0; }
+    .preview-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
+    .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .preview-item .remove-btn {
+      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+      background: rgba(255,71,87,0.9); color: white; border: none; border-radius: 50%;
+      font-size: 14px; cursor: pointer; line-height: 1;
+    }
+
+    .btn { border: none; border-radius: 10px; padding: 12px 28px; font-size: 15px; cursor: pointer; font-weight: 600; }
+    .btn-primary { background: #ff6b9d; color: white; width: 100%; }
+    .btn-primary:disabled { background: #555; cursor: not-allowed; }
+
+    .log { margin-top: 20px; background: #0f0f23; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; font-size: 12px; font-family: monospace; }
+    .log .success { color: #2ed573; }
+    .log .error { color: #ff4757; }
+    .log .info { color: #ffc048; }
+
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>照片管理后台</h1>
+    <p class="sub">上传照片到回忆相册 · 仅管理员使用</p>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:48px;margin-bottom:12px;">📸</div>
+      <div>点击选择照片 或 拖拽到此处</div>
+      <div style="color:#666;font-size:12px;margin-top:8px;">支持 JPG/PNG/WebP/HEIC</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple>
+
+    <div class="preview-grid" id="previewGrid"></div>
+
+    <button class="btn btn-primary" id="uploadBtn" onclick="startUpload()" disabled>上传到相册</button>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      projectId: "lovecouple-626",
+      databaseURL: "https://lovecouple-626-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    const UPLOAD_API = 'https://love2-sand.vercel.app/api/upload';
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let files = [];
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const previewGrid = document.getElementById('previewGrid');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const logEl = document.getElementById('log');
+
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      logEl.innerHTML += `<div class="${type}">[${time}] ${msg}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    fileInput.addEventListener('change', () => {
+      files = Array.from(fileInput.files);
+      renderPreviews();
+      uploadBtn.disabled = files.length === 0;
+    });
+
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      renderPreviews();
+      uploadBtn.disabled = files.length === 0;
+    });
+
+    function renderPreviews() {
+      previewGrid.innerHTML = files.map((f, i) => `
+        <div class="preview-item">
+          <img src="${URL.createObjectURL(f)}" alt="${f.name}">
+          <button class="remove-btn" onclick="removeFile(${i})">×</button>
+        </div>
+      `).join('');
+    }
+
+    function removeFile(i) {
+      files.splice(i, 1);
+      renderPreviews();
+      uploadBtn.disabled = files.length === 0;
+    }
+
+    async function startUpload() {
+      if (files.length === 0) return;
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = '上传中...';
+      log(`开始上传 ${files.length} 张照片`, 'info');
+
+      let success = 0, fail = 0;
+      for (const file of files) {
+        const photoId = Date.now().toString() + '_' + Math.random().toString(36).slice(2, 6);
+        const cosKey = `photos/admin/${photoId}_${file.name}`;
+
+        try {
+          log(`上传: ${file.name}`);
+          // Step 1: 获取预签名 URL
+          const res1 = await fetch(UPLOAD_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: cosKey, contentType: file.type })
+          });
+          const data = await res1.json();
+          if (data.error) throw new Error(data.error);
+
+          // Step 2: 直传 COS
+          await fetch(data.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+
+          // Step 3: 写入 Firebase
+          const photoData = {
+            id: photoId,
+            url: data.downloadUrl,
+            date: new Date().toISOString().split('T')[0],
+            addedBy: 'admin',
+            filename: file.name,
+            size: file.size,
+            timestamp: Date.now()
+          };
+          await database.ref(`couple_data/shared/photos/${photoId}`).set(photoData);
+
+          log(`完成: ${file.name}`, 'success');
+          success++;
+        } catch (err) {
+          log(`失败: ${file.name} - ${err.message}`, 'error');
+          fail++;
+        }
+      }
+
+      log(`全部完成: 成功 ${success}, 失败 ${fail}`, success === files.length ? 'success' : 'info');
+      uploadBtn.textContent = '上传到相册';
+      uploadBtn.disabled = false;
+      if (fail === 0) { files = []; renderPreviews(); }
+    }
+  </script>
+</body>
+</html>
