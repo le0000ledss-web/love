@@ -268,7 +268,7 @@
   <div class="login-card">
     <div class="login-icon">❤️</div>
     <div class="login-title">纯猪蛋 & mi鼠</div>
-    <div class="login-subtitle">请输入账号密码进入秘密基地</div>
+    <div class="login-subtitle">请输入账号密码进入我们的小世界</div>
     <div class="login-field">
       <label>账号</label>
       <input type="text" id="loginUsername" placeholder="请输入账号" autocomplete="username">
@@ -278,7 +278,7 @@
       <input type="password" id="loginPassword" placeholder="请输入密码" autocomplete="current-password">
     </div>
     <div id="loginError" class="login-error"></div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">进入秘密基地</button>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">进入小世界</button>
     <div class="login-hint">仅限猪蛋弟和mi鼠访问</div>
   </div>
 </div>
@@ -296,7 +296,7 @@
     <div class="splash-icon">❤️</div>
     <div id="splashTitle" class="splash-title">今天见面啦！</div>
     <div id="splashMsg" class="splash-msg">所有的思念都值得<br>所有的等待都美好</div>
-    <button class="splash-dismiss" onclick="dismissSplash()">进入我们的秘密基地</button>
+    <button class="splash-dismiss" onclick="dismissSplash()">进入我们的小世界</button>
   </div>
 </div>
 
@@ -459,6 +459,36 @@
     <div class="section-hint">我们的回忆，由后端统一管理</div>
     <div id="memoryToday" class="memory-today">加载中...</div>
     <div id="memoryWall" class="memory-wall"></div>
+    
+    <!-- 管理员上传区（仅mi鼠可见） -->
+    <div id="adminUploadSection" style="display: none; margin-top: 20px;">
+      <div class="section-title">
+        <span class="icon">🔧</span>管理员上传区
+      </div>
+      <div class="section-hint">仅mi鼠可见，用于上传新照片到回忆相册</div>
+      
+      <div style="background: #fff8f8; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+        <div style="font-size: 13px; color: #666; margin-bottom: 8px;">上传本地照片到 Firebase Storage：</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 200px;">
+            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">选择图片：</div>
+            <input type="file" id="photoFile" accept="image/*" style="width: 100%; padding: 8px; border: 1px solid #ffb3cc; border-radius: 8px; font-size: 13px; background: white;">
+          </div>
+          <div style="flex: 1; min-width: 150px;">
+            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">日期：</div>
+            <input type="text" id="photoDate" placeholder="2024-01-01" style="width: 100%; padding: 8px; border: 1px solid #ffb3cc; border-radius: 8px; font-size: 13px;">
+          </div>
+        </div>
+        <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
+          <button onclick="uploadPhoto()" style="background: #ff6b9d; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer;">上传照片</button>
+          <button onclick="clearPhotoForm()" style="background: #f0f0f0; color: #666; border: 1px solid #ddd; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer;">清空</button>
+          <div id="uploadProgress" style="flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; display: none;">
+            <div id="uploadProgressBar" style="height:100%; width:0%; background: #2ed573; transition: width 0.3s;"></div>
+          </div>
+        </div>
+        <div id="uploadStatus" style="font-size: 12px; margin-top: 8px; min-height: 20px;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- To-Do List (AI Enhanced) -->
@@ -557,6 +587,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
 <script>
 // ==================== AUTHENTICATION SYSTEM ====================
 const VALID_USERS = {
@@ -615,6 +646,9 @@ function doLogin() {
 
   // Initialize app
   initApp();
+  
+  // Show admin section for mi鼠
+  showAdminSection();
 }
 
 function doLogout() {
@@ -686,15 +720,17 @@ function getDataPath(path) {
 // ==================== FIREBASE CONFIG ====================
 const firebaseConfig = {
   projectId: "lovecouple-626",
+  storageBucket: "lovecouple-626.firebasestorage.app",
   databaseURL: "https://lovecouple-626-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-let app, database;
+let app, database, storage;
 let firebaseListeners = [];
 
 function initFirebase() {
   app = firebase.initializeApp(firebaseConfig);
   database = firebase.database(app);
+  storage = firebase.storage(app);
 }
 
 // ==================== FIREBASE UTILS ====================
@@ -1488,6 +1524,92 @@ function renderPhotos(photosData) {
 }
 
 function showPhoto(url) { window.open(url, '_blank'); }
+
+// ==================== ADMIN PHOTO UPLOAD (mi鼠 only) ====================
+function uploadPhoto() {
+  requireAuth();
+  if (currentUser.username !== 'nanyilan') {
+    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">仅mi鼠可以上传照片</span>';
+    return;
+  }
+  
+  const fileInput = document.getElementById('photoFile');
+  const date = document.getElementById('photoDate').value.trim();
+  
+  if (!fileInput.files || fileInput.files.length === 0) {
+    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">请选择图片文件</span>';
+    return;
+  }
+  if (!date) {
+    document.getElementById('uploadStatus').innerHTML = '<span style="color:#ff4757;">请填写日期</span>';
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  const photoId = Date.now().toString();
+  const storageRef = storage.ref(`photos/${currentUser.username}/${photoId}_${file.name}`);
+  
+  // 显示进度条
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('uploadProgressBar').style.width = '0%';
+  document.getElementById('uploadStatus').innerHTML = '<span style="color:#666;">上传中...</span>';
+  
+  const uploadTask = storageRef.put(file);
+  
+  uploadTask.on('state_changed',
+    (snapshot) => {
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      document.getElementById('uploadProgressBar').style.width = progress + '%';
+    },
+    (error) => {
+      document.getElementById('uploadProgress').style.display = 'none';
+      document.getElementById('uploadStatus').innerHTML = `<span style="color:#ff4757;">上传失败: ${error.message}</span>`;
+    },
+    () => {
+      uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+        const photoData = { 
+          id: photoId, 
+          url: downloadURL, 
+          date, 
+          addedBy: currentUser.username,
+          filename: file.name,
+          size: file.size,
+          timestamp: Date.now()
+        };
+        
+        database.ref(getDataPath(`photos/${photoId}`)).set(photoData)
+          .then(() => {
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('uploadStatus').innerHTML = '<span style="color:#2ed573;">上传成功！</span>';
+            clearPhotoForm();
+          })
+          .catch(err => {
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('uploadStatus').innerHTML = `<span style="color:#ff4757;">数据库保存失败: ${err.message}</span>`;
+          });
+      }).catch((error) => {
+        document.getElementById('uploadProgress').style.display = 'none';
+        document.getElementById('uploadStatus').innerHTML = `<span style="color:#ff4757;">获取URL失败: ${error.message}</span>`;
+      });
+    }
+  );
+}
+
+function clearPhotoForm() {
+  document.getElementById('photoFile').value = '';
+  document.getElementById('photoDate').value = '';
+  document.getElementById('uploadStatus').innerHTML = '';
+  document.getElementById('uploadProgress').style.display = 'none';
+}
+
+function showAdminSection() {
+  const section = document.getElementById('adminUploadSection');
+  if (currentUser.username === 'nanyilan') {
+    section.style.display = 'block';
+  } else {
+    section.style.display = 'none';
+  }
+}
 
 // ==================== TO-DO LIST (AI Enhanced) ====================
 const typeIcons = { play:'🎮', eat:'🍜', go:'✈️', watch:'🎬', buy:'🛍️' };
