@@ -339,6 +339,7 @@
   <!-- Countdown -->
   <div class="section countdown-section">
     <div class="section-title"><span class="icon">⏳</span>总是梦见云层之上飞过子午线</div>
+    <div class="section-hint">下次见面倒计时</div>
     <div class="target">2026年6月12日</div>
     <div class="countdown-grid">
       <div class="cd-item"><div id="cd-days" class="num">0</div><div class="unit">天</div></div>
@@ -1598,6 +1599,7 @@ function submitApology() {
     if (item) {
       item.status = 'done';
       item.reply = text;
+      item.resolvedDate = new Date().toDateString();
       database.ref(getDataPath(`complaints/${popupId}`)).set(item);
     }
   });
@@ -1613,7 +1615,12 @@ function rejectComplaint(id) {
   if (!currentUser.canComplain) return;
   database.ref(getDataPath(`complaints/${id}`)).once('value').then(snapshot => {
     const item = snapshot.val();
-    if (item) { item.status = 'rejected'; item.reply = '不满意，重新处理！'; database.ref(getDataPath(`complaints/${id}`)).set(item); }
+    if (item) {
+      item.status = 'rejected';
+      item.reply = '不满意，重新处理！';
+      item.resolvedDate = new Date().toDateString();
+      database.ref(getDataPath(`complaints/${id}`)).set(item);
+    }
   });
 }
 
@@ -1626,12 +1633,21 @@ function promptApologyInline(id) {
   if (!trimmed) return alert('道歉不能为空~');
   database.ref(getDataPath(`complaints/${id}`)).once('value').then(snapshot => {
     const item = snapshot.val();
-    if (item) { item.status = 'done'; item.reply = trimmed; database.ref(getDataPath(`complaints/${id}`)).set(item); }
+    if (item) {
+      item.status = 'done';
+      item.reply = trimmed;
+      item.resolvedDate = new Date().toDateString();
+      database.ref(getDataPath(`complaints/${id}`)).set(item);
+    }
   });
 }
 
 function renderComplaints(complaintsData) {
-  const list = objectToArray(complaintsData);
+  const all = objectToArray(complaintsData);
+  const today = new Date().toDateString();
+  // Show pending always; resolved (done/rejected) only on the day they were resolved.
+  // Legacy items with no resolvedDate stay visible so existing data isn't suddenly lost.
+  const list = all.filter(c => c.status === 'pending' || !c.resolvedDate || c.resolvedDate === today);
   const container = document.getElementById('complaintList');
   const badge = document.getElementById('complaintBadge');
   const hint = document.getElementById('complaintHint');
