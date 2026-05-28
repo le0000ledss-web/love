@@ -911,19 +911,35 @@ function drawMap() {
   canvas.width = w * dpr; canvas.height = h * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  // Ocean (background)
+  // Ocean (background gradient)
   const sea = ctx.createLinearGradient(0, 0, w, h);
-  sea.addColorStop(0, '#dbeafe'); sea.addColorStop(1, '#bfdbfe');
+  sea.addColorStop(0, '#dbeafe'); sea.addColorStop(1, '#a5d8f0');
   ctx.fillStyle = sea; ctx.fillRect(0, 0, w, h);
 
+  // Animated wave dots in the sea (东南方向，离陆地远的地方)
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  const waveSeed = mapAnimFrame * 0.02;
+  for (let i = 0; i < 18; i++) {
+    const wx = (i * 53 + Math.sin(waveSeed + i) * 6) % w;
+    const wy = h * 0.78 + ((i * 31) % 50) + Math.cos(waveSeed * 1.3 + i) * 2;
+    if (wx < w * 0.1 || (wx > w * 0.15 && wx < w * 0.92 && wy < h * 0.92)) {
+      // skip near land area; rough check
+      ctx.beginPath(); ctx.arc(wx, wy, 1.2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
   // Lat/Lon grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 0.6;
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 0.6;
   for (let i = 0; i < w; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); }
   for (let j = 0; j < h; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(w, j); ctx.stroke(); }
 
-  // China outline (stylized) — focus on the band that contains Chengdu and Jiashan
-  ctx.fillStyle = '#fef3c7';
-  ctx.strokeStyle = '#d97706'; ctx.lineWidth = 1.2;
+  // Land — soft yellow-green gradient
+  const landGrad = ctx.createLinearGradient(0, 0, 0, h);
+  landGrad.addColorStop(0, '#fef9c3');
+  landGrad.addColorStop(0.5, '#fef3c7');
+  landGrad.addColorStop(1, '#fde68a');
+  ctx.fillStyle = landGrad;
+  ctx.strokeStyle = '#d97706'; ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.moveTo(w*0.02, h*0.20);
   ctx.bezierCurveTo(w*0.10, h*0.05, w*0.30, h*0.02, w*0.50, h*0.08);
@@ -935,13 +951,84 @@ function drawMap() {
   ctx.closePath();
   ctx.fill(); ctx.stroke();
 
-  // Yangtze River — west to east, passing near both cities
-  ctx.strokeStyle = 'rgba(59,130,246,0.55)'; ctx.lineWidth = 2;
+  // Yellow River (黄河 — 北部，几字形)
+  ctx.strokeStyle = 'rgba(202,138,4,0.55)'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(w*0.18, h*0.30);
+  ctx.bezierCurveTo(w*0.28, h*0.20, w*0.38, h*0.25, w*0.45, h*0.32);
+  ctx.bezierCurveTo(w*0.52, h*0.40, w*0.60, h*0.32, w*0.72, h*0.30);
+  ctx.bezierCurveTo(w*0.82, h*0.28, w*0.88, h*0.32, w*0.91, h*0.36);
+  ctx.stroke();
+
+  // Yangtze River (长江 — 中部，更粗)
+  ctx.strokeStyle = 'rgba(59,130,246,0.6)'; ctx.lineWidth = 2.2;
   ctx.beginPath();
   ctx.moveTo(w*0.10, h*0.62);
-  ctx.bezierCurveTo(w*0.25, h*0.58, w*0.35, h*0.50, w*0.50, h*0.50);
-  ctx.bezierCurveTo(w*0.65, h*0.50, w*0.78, h*0.45, w*0.93, h*0.42);
+  ctx.bezierCurveTo(w*0.22, h*0.58, w*0.32, h*0.52, w*0.45, h*0.50);
+  ctx.bezierCurveTo(w*0.58, h*0.48, w*0.70, h*0.46, w*0.93, h*0.42);
   ctx.stroke();
+
+  // Mountain ranges — small triangles (青藏高原边缘 + 秦岭)
+  const mountains = [
+    [0.10, 0.55], [0.13, 0.48], [0.16, 0.58], [0.08, 0.65],
+    [0.30, 0.42], [0.34, 0.38], [0.38, 0.43], [0.42, 0.40],
+    [0.55, 0.38], [0.59, 0.35], [0.63, 0.40],
+  ];
+  ctx.fillStyle = '#a78b6a';
+  ctx.strokeStyle = '#78350f'; ctx.lineWidth = 0.8;
+  for (const [mx, my] of mountains) {
+    const x = w * mx, y = h * my, sz = 7;
+    ctx.beginPath();
+    ctx.moveTo(x - sz, y + sz);
+    ctx.lineTo(x, y - sz);
+    ctx.lineTo(x + sz, y + sz);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // snow cap
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(x - 2.5, y - sz + 4);
+    ctx.lineTo(x, y - sz);
+    ctx.lineTo(x + 2.5, y - sz + 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#a78b6a';
+  }
+
+  // Forest dots — small green circles
+  ctx.fillStyle = 'rgba(34,139,34,0.55)';
+  const trees = [
+    [0.25, 0.65], [0.28, 0.70], [0.22, 0.72],
+    [0.40, 0.65], [0.45, 0.70], [0.50, 0.62],
+    [0.65, 0.55], [0.70, 0.60], [0.74, 0.55],
+    [0.55, 0.75], [0.50, 0.78],
+  ];
+  for (const [tx, ty] of trees) {
+    ctx.beginPath();
+    ctx.arc(w * tx, h * ty, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Intermediate cities along the route (subtle gray dots)
+  const cityRoute = [
+    { x: 0.38, y: 0.50, name: '重庆' },
+    { x: 0.52, y: 0.49, name: '武汉' },
+    { x: 0.68, y: 0.45, name: '南京' },
+  ];
+  ctx.fillStyle = 'rgba(120,80,40,0.6)';
+  ctx.font = '9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const c of cityRoute) {
+    const x = w * c.x, y = h * c.y;
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(80,50,20,0.8)';
+    ctx.fillText(c.name, x, y - 8);
+    ctx.fillStyle = 'rgba(120,80,40,0.6)';
+  }
+
+  // Two clouds drifting in the sky — animated
+  const cloudPhase = (mapAnimFrame * 0.15) % (w + 80);
+  drawCloud(ctx, ((w * 0.30 + cloudPhase) % (w + 80)) - 40, h * 0.10, 0.9);
+  drawCloud(ctx, ((w * 0.70 + cloudPhase * 0.7) % (w + 80)) - 40, h * 0.18, 0.7);
 
   // City coordinates
   const cx = w * 0.22, cy = h * 0.55;
@@ -960,7 +1047,7 @@ function drawMap() {
   ctx.setLineDash([]);
   ctx.shadowBlur = 0;
 
-  // Heart pulse near center of arc (slowed)
+  // Heart pulse (slowed)
   const t = 0.5 + Math.sin(mapAnimFrame * 0.015) * 0.15;
   const hx = cx + (jx - cx) * t;
   const hy = cy + (jy - cy) * t - Math.sin(t * Math.PI) * 35;
@@ -976,7 +1063,7 @@ function drawMap() {
   drawCityMarker(ctx, cx, cy, '#ff6b9d', '成都');
   drawCityMarker(ctx, jx, jy, '#ff8e53', '嘉善');
 
-  // Airplane traveling along the arc (slowed: 0.01 → 0.004)
+  // Airplane traveling along the arc (slow)
   const pt = 0.3 + (mapAnimFrame * 0.004) % 0.6;
   const px = cx + (jx - cx) * pt;
   const py = cy + (jy - cy) * pt - Math.sin(pt * Math.PI) * 35 - 8;
@@ -986,6 +1073,19 @@ function drawMap() {
 
   mapAnimFrame++;
   requestAnimationFrame(() => { if (canvas.isConnected) drawMap(); });
+}
+
+function drawCloud(ctx, x, y, scale) {
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(scale, scale);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath();
+  ctx.arc(0, 0, 8, 0, Math.PI * 2);
+  ctx.arc(8, -3, 9, 0, Math.PI * 2);
+  ctx.arc(17, 0, 7, 0, Math.PI * 2);
+  ctx.arc(8, 4, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawCityMarker(ctx, x, y, color, name) {
