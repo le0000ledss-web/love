@@ -1597,9 +1597,8 @@ function submitApology() {
   database.ref(getDataPath(`complaints/${popupId}`)).once('value').then(snapshot => {
     const item = snapshot.val();
     if (item) {
-      item.status = 'done';
+      item.status = 'apologized';
       item.reply = text;
-      item.resolvedDate = new Date().toDateString();
       database.ref(getDataPath(`complaints/${popupId}`)).set(item);
     }
   });
@@ -1617,7 +1616,18 @@ function rejectComplaint(id) {
     const item = snapshot.val();
     if (item) {
       item.status = 'rejected';
-      item.reply = '不满意，重新处理！';
+      database.ref(getDataPath(`complaints/${id}`)).set(item);
+    }
+  });
+}
+
+function acceptApology(id) {
+  requireAuth();
+  if (!currentUser.canComplain) return;
+  database.ref(getDataPath(`complaints/${id}`)).once('value').then(snapshot => {
+    const item = snapshot.val();
+    if (item) {
+      item.status = 'done';
       item.resolvedDate = new Date().toDateString();
       database.ref(getDataPath(`complaints/${id}`)).set(item);
     }
@@ -1634,9 +1644,8 @@ function promptApologyInline(id) {
   database.ref(getDataPath(`complaints/${id}`)).once('value').then(snapshot => {
     const item = snapshot.val();
     if (item) {
-      item.status = 'done';
+      item.status = 'apologized';
       item.reply = trimmed;
-      item.resolvedDate = new Date().toDateString();
       database.ref(getDataPath(`complaints/${id}`)).set(item);
     }
   });
@@ -1645,24 +1654,26 @@ function promptApologyInline(id) {
 function renderComplaints(complaintsData) {
   const all = objectToArray(complaintsData);
   const today = new Date().toDateString();
-  // Show pending always; resolved (done/rejected) only on the day they were resolved.
-  // Legacy items with no resolvedDate stay visible so existing data isn't suddenly lost.
-  const list = all.filter(c => c.status === 'pending' || !c.resolvedDate || c.resolvedDate === today);
+  // 'done' is the only auto-hiding status (next day). Everything else stays visible
+  // until acted upon. Legacy items without resolvedDate aren't suddenly hidden.
+  const list = all.filter(c => c.status !== 'done' || !c.resolvedDate || c.resolvedDate === today);
   const container = document.getElementById('complaintList');
   const badge = document.getElementById('complaintBadge');
   const hint = document.getElementById('complaintHint');
 
   if (currentUser && currentUser.canComplain) {
     hint.textContent = '只有mi鼠可以发起投诉，纯猪蛋只能处理';
-    const pendingForTa = list.filter(c => c.to === 'ta' && c.status === 'pending');
-    badge.textContent = pendingForTa.length;
-    badge.style.display = pendingForTa.length > 0 ? 'inline-block' : 'none';
+    // mi鼠 needs to act on items in 'apologized' state.
+    const needsReview = list.filter(c => c.from === 'you' && c.status === 'apologized');
+    badge.textContent = needsReview.length;
+    badge.style.display = needsReview.length > 0 ? 'inline-block' : 'none';
   } else {
     hint.textContent = '纯猪蛋只能处理投诉，不能发起';
     document.getElementById('btnAddComplaint').style.display = 'none';
-    const pendingForMe = list.filter(c => c.to === 'ta' && c.status === 'pending');
-    badge.textContent = pendingForMe.length;
-    badge.style.display = pendingForMe.length > 0 ? 'inline-block' : 'none';
+    // 纯猪蛋 needs to act on pending or rejected items addressed to them.
+    const needsAct = list.filter(c => c.to === 'ta' && (c.status === 'pending' || c.status === 'rejected'));
+    badge.textContent = needsAct.length;
+    badge.style.display = needsAct.length > 0 ? 'inline-block' : 'none';
   }
 
   if (list.length === 0) {
@@ -1671,23 +1682,38 @@ function renderComplaints(complaintsData) {
   }
 
   container.innerHTML = list.slice().reverse().map(c => {
-    const statusMap = { pending: ['处理中', 'status-pending'], done: ['已处理', 'status-done'], rejected: ['已打回', 'status-rejected'] };
+    const statusMap = {
+      pending: ['处理中', 'status-pending'],
+      apologized: ['等待审核', 'status-pending'],
+      done: ['已接受', 'status-done'],
+      rejected: ['已打回', 'status-rejected']
+    };
     const [stLabel, stClass] = statusMap[c.status] || ['未知', ''];
     const isFromYou = c.from === 'you';
+    const amMishu = currentUser && currentUser.canComplain;
 
     let actions = '';
-    if (!isFromYou && c.status === 'pending') {
+    // 纯猪蛋 acts on a complaint addressed to them
+    if (!amMishu && !isFromYou && c.status === 'pending') {
       actions = `<div class="complaint-actions">
         <button class="btn btn-green" onclick="promptApologyInline('${c.id}')">我错了</button>
       </div>`;
     }
-    if (isFromYou && currentUser && currentUser.canComplain && c.status === 'done') {
+    // After being rejected, 纯猪蛋 can re-apologize
+    if (!amMishu && !isFromYou && c.status === 'rejected') {
       actions = `<div class="complaint-actions">
-        <button class="btn btn-orange" onclick="rejectComplaint('${c.id}')">不满意，打回重做</button>
+        <button class="btn btn-orange" onclick="promptApologyInline('${c.id}')">重新道歉</button>
+      </div>`;
+    }
+    // mi鼠 reviews 纯猪蛋's apology
+    if (amMishu && isFromYou && c.status === 'apologized') {
+      actions = `<div class="complaint-actions">
+        <button class="btn btn-green" onclick="acceptApology('${c.id}')">接受道歉</button>
+        <button class="btn btn-orange" onclick="rejectComplaint('${c.id}')">驳回</button>
       </div>`;
     }
     if (c.reply) {
-      actions += `<div style="font-size:12px;color:#888;margin-top:4px;">回复：${c.reply}</div>`;
+      actions += `<div style="font-size:12px;color:#888;margin-top:4px;">道歉：${c.reply}</div>`;
     }
 
     return `<div class="complaint-item">
@@ -1710,9 +1736,10 @@ function toggleComplaintForm() {
 function checkPendingComplaints(complaintsData) {
   if (currentUser && !currentUser.canComplain) {
     const list = objectToArray(complaintsData);
-    const pending = list.filter(c => c.to === 'ta' && c.status === 'pending');
-    if (pending.length > 0) {
-      const latest = pending[pending.length - 1];
+    // Trigger popup for things that need 纯猪蛋's action: new pending or just-rejected.
+    const needsAct = list.filter(c => c.to === 'ta' && (c.status === 'pending' || c.status === 'rejected'));
+    if (needsAct.length > 0) {
+      const latest = needsAct[needsAct.length - 1];
       document.getElementById('popupReason').textContent = latest.reason;
       document.getElementById('complaintPopup').dataset.complaintId = latest.id;
       document.getElementById('complaintPopup').classList.add('show');
