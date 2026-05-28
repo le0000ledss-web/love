@@ -722,8 +722,8 @@ const firebaseConfig = {
   databaseURL: "https://lovecouple-626-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-// 照片上传 API（Vercel Serverless，密钥存于环境变量，不暴露在代码中）
-const UPLOAD_API = 'https://love2-sand.vercel.app/api/upload';
+// 照片 API（Vercel Serverless，密钥存于环境变量，不暴露在代码中）
+const PHOTO_API = 'https://love2-sand.vercel.app/api/list-photos';
 
 let app, database;
 let firebaseListeners = [];
@@ -782,12 +782,6 @@ function setupFirebaseListeners() {
     }
   });
 
-  const photosRef = database.ref(getDataPath('photos'));
-  photosRef.on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) renderPhotos(data);
-  });
-
   const todosRef = database.ref(getDataPath('todos'));
   todosRef.on('value', (snapshot) => {
     const data = snapshot.val();
@@ -808,7 +802,7 @@ function setupFirebaseListeners() {
 
   firebaseListeners = [
     connectedRef, moodRef, sharesRef, personalTodosRef,
-    complaintsRef, photosRef, todosRef, gamesRef, scoresRef
+    complaintsRef, todosRef, gamesRef, scoresRef
   ];
 }
 
@@ -1493,10 +1487,25 @@ function checkPendingComplaints(complaintsData) {
 }
 
 // ==================== MEMORY PHOTO WALL (READ-ONLY) ====================
-// Upload and delete functionality removed - photos managed by backend only
+// Photos are fetched from COS via Vercel API, no upload/delete on frontend
 
-function renderPhotos(photosData) {
-  const photos = objectToArray(photosData);
+async function loadPhotos() {
+  const today = document.getElementById('memoryToday');
+  const wall = document.getElementById('memoryWall');
+  today.innerHTML = '<div class="memory-today">加载中...</div>';
+
+  try {
+    const res = await fetch(PHOTO_API);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderPhotos(data.photos || []);
+  } catch (err) {
+    console.error('加载照片失败:', err);
+    today.innerHTML = '<div class="memory-today">照片加载失败，请稍后重试</div>';
+  }
+}
+
+function renderPhotos(photos) {
   const wall = document.getElementById('memoryWall');
   const today = document.getElementById('memoryToday');
 
@@ -1505,27 +1514,28 @@ function renderPhotos(photosData) {
     const seed = todayStr.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
     const idx = seed % photos.length;
     const photo = photos[idx];
+    const dateStr = photo.date || photo.lastModified?.slice(0, 10) || '';
     today.innerHTML = `
       <div class="memory-today">
-        <div>今日回忆 · ${photo.date}</div>
+        <div>今日回忆 · ${dateStr}</div>
         <img src="${photo.url}" alt="今日回忆" class="today-photo" onerror="this.style.display='none'">
         <div id="commentSection_${photo.id}" class="photo-comment-section">
           <div class="comment-list" id="commentList_${photo.id}"></div>
         </div>
       </div>
     `;
-    // Render comments for today's photo
     setTimeout(() => renderComments(photo.id), 100);
   } else {
-    today.innerHTML = '<div class="memory-today">还没有照片，照片由后端统一管理 📸</div>';
+    today.innerHTML = '<div class="memory-today">还没有照片，去 COS 上传吧 📸</div>';
   }
 
-  wall.innerHTML = photos.slice(-6).map(p => {
+  wall.innerHTML = photos.slice(0, 6).map(p => {
     const escapeUrl = p.url.replace(/'/g, "\\'");
+    const dateStr = p.date || p.lastModified?.slice(0, 10) || '';
     return `
     <div class="memory-photo-item" onclick="showPhoto('${escapeUrl}')">
-      <img src="${p.url}" alt="${p.date}" onerror="this.style.display='none'">
-      <div class="photo-date">${p.date}</div>
+      <img src="${p.url}" alt="${dateStr}" onerror="this.style.display='none'">
+      <div class="photo-date">${dateStr}</div>
     </div>
   `}).join('');
 }
@@ -1777,6 +1787,7 @@ function initApp() {
   renderHoroscope();
   initMoodButtons();
   setupFirebaseListeners();
+  loadPhotos();
 
   // Update day count
   const startDate = new Date('2018-04-08');
