@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>纯猪蛋 & mi鼠 - 实时版</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
+  <style>
+    :root {
+      --pink: #ff6b9d; --pink-light: #ffb3cc; --orange: #ff8e53;
+      --bg: #fff5f7; --card: #ffffff; --text: #4a4a4a;
+      --shadow: 0 4px 20px rgba(255,107,157,0.12);
+      --red: #ff4757; --green: #2ed573; --blue: #5352ed; --purple: #a55eea;
+      --yellow: #ffc048; --cyan: #00d2d3;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+      background: var(--bg); min-height: 100vh; color: var(--text);
+      transition: background 0.5s;
+    }
+    .container { max-width: 520px; margin: 0 auto; padding: 20px 16px 40px; }
+
+    /* Splash */
+    .splash-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 9999; justify-content: center; align-items: center;
+      background: linear-gradient(135deg,#ff6b9d 0%,#ff8e53 40%,#ff6b9d 70%,#c084fc 100%);
+      background-size: 400% 400%; animation: splashBg 3s ease infinite;
+      flex-direction: column; overflow: hidden;
+    }
+    .splash-overlay.show { display: flex; }
+    @keyframes splashBg { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    .splash-content { text-align: center; color: #fff; animation: splashIn 0.8s ease; z-index: 1; }
+    @keyframes splashIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+    .splash-content .splash-icon { font-size:80px; animation: bounceHeart 0.6s ease infinite alternate; }
+    @keyframes bounceHeart { from{transform:translateY(0)scale(1)} to{transform:translateY(-12px)scale(1.08)} }
+    .splash-content .splash-title { font-size:36px; font-weight:800; margin:16px 0 8px; text-shadow:0 4px 20px rgba(255,255,255,0.4); }
+    .splash-content .splash-msg { font-size:18px; opacity:0.9; line-height:1.6; margin-bottom:24px; }
+    .splash-particle { position:absolute; font-size:24px; animation:floatUp 3s linear infinite; opacity:0; }
+    @keyframes floatUp { 0%{transform:translateY(0)rotate(0deg);opacity:0} 10%{opacity:0.8} 90%{opacity:0.6} 100%{transform:translateY(-400px)rotate(360deg);opacity:0} }
+    .splash-dismiss { background:rgba(255,255,255,0.25); color:#fff; border:2px solid rgba(255,255,255,0.5); border-radius:30px; padding:12px 36px; font-size:16px; font-weight:700; cursor:pointer; transition:all 0.3s; backdrop-filter:blur(10px); }
+    .splash-dismiss:hover { background:rgba(255,255,255,0.4); }
+
+    /* Role */
+    .role-lock { display:flex; justify-content:space-between; align-items:center; background:var(--card); border-radius:20px; padding:12px 20px; margin-bottom:16px; box-shadow:var(--shadow); }
+    .role-lock .role-info { font-size:14px; font-weight:600; }
+    .role-lock .role-tag { background:linear-gradient(135deg,#ff6b9d,#ff8e53); color:#fff; padding:4px 12px; border-radius:15px; font-size:12px; font-weight:600; }
+
+    .header { text-align:center; padding:8px 0 16px; }
+    .header .title { font-size:26px; font-weight:700; background:linear-gradient(135deg,#ff6b9d,#ff8e53); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .header .subtitle { font-size:13px; color:#aaa; margin-top:2px; }
+
+    .section { background:var(--card); border-radius:20px; padding:20px; margin-bottom:16px; box-shadow:var(--shadow); }
+    .section-title { font-size:16px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+    .icon { font-size:20px; }
+    .section-hint { font-size:12px; color:#bbb; margin-bottom:14px; }
+
+    /* Countdown */
+    .countdown-section { text-align:center; }
+    .countdown-section .target { font-size:15px; font-weight:600; color:var(--pink); margin-bottom:12px; }
+    .countdown-grid { display:flex; justify-content:center; gap:10px; }
+    .cd-item { background:linear-gradient(135deg,#fff5f7,#ffe0eb); border-radius:14px; padding:10px 14px; min-width:60px; }
+    .cd-item .num { font-size:28px; font-weight:700; color:var(--pink); }
+    .cd-item .unit { font-size:11px; color:#c97a94; }
+
+    /* Mood */
+    .mood-btn-group { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+    .mood-btn { width:50px; height:50px; border-radius:50%; border:3px solid transparent; cursor:pointer; font-size:20px; transition:all 0.3s; background:#fafafa; display:flex; align-items:center; justify-content:center; }
+    .mood-btn:hover { transform:scale(1.1); }
+    .mood-btn.active { border-color:var(--pink); box-shadow:0 0 20px rgba(255,107,157,0.35); animation:pulse 1.8s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 12px rgba(255,107,157,0.3)} 50%{box-shadow:0 0 28px rgba(255,107,157,0.55)} }
+    .mood-status { margin-top:12px; font-size:13px; color:#c97a94; min-height:20px; }
+
+    /* Map */
+    .map-canvas-wrap { position:relative; height:220px; border-radius:14px; overflow:hidden; background:linear-gradient(135deg,#e8f4f8,#f0e6ff); }
+    .map-canvas-wrap canvas { width:100%; height:100%; display:block; }
+    .city-tags { display:flex; justify-content:space-between; margin-top:10px; font-size:13px; color:#888; }
+    .city-tags span { font-weight:600; color:var(--pink); }
+
+    /* Question */
+    .question-card { background:linear-gradient(135deg,#fff5f7,#fff0e6); border-radius:14px; padding:20px 16px; min-height:60px; display:flex; align-items:center; justify-content:center; font-size:15px; color:#6b4c5b; line-height:1.6; transition:all 0.4s; text-align:center; }
+
+    /* Note */
+    .note-card { background:#fffbe6; border-radius:12px; padding:18px 16px; font-size:14px; color:#8b7355; line-height:1.8; min-height:50px; position:relative; text-align:center; }
+    .note-card::before { content:''; position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:30px; height:12px; background:#ffe066; border-radius:3px; }
+
+    /* Complaint */
+    .complaint-list { margin-bottom:12px; }
+    .complaint-item { background:#fff5f5; border-left:4px solid var(--red); border-radius:10px; padding:14px; margin-bottom:10px; }
+    .complaint-item .complaint-reason { font-size:14px; color:#555; margin-bottom:6px; line-height:1.5; }
+    .complaint-item .complaint-meta { font-size:11px; color:#bbb; }
+    .complaint-status { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:600; margin-left:8px; }
+    .status-pending { background:#ffe0e0; color:#e74c3c; }
+    .status-done { background:#e0ffe0; color:#27ae60; }
+    .status-rejected { background:#fff3e0; color:#e67e22; }
+    .complaint-actions { display:flex; gap:8px; margin-top:8px; }
+
+    .btn { padding:7px 16px; border-radius:18px; border:none; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s; }
+    .btn-red { background:#ff4757; color:#fff; } .btn-red:hover { background:#e84118; }
+    .btn-green { background:#2ed573; color:#fff; } .btn-green:hover { background:#26ae60; }
+    .btn-orange { background:#ffa502; color:#fff; } .btn-orange:hover { background:#e89400; }
+    .btn-blue { background:#5352ed; color:#fff; } .btn-blue:hover { background:#3d3bd0; }
+    .btn-purple { background:#a55eea; color:#fff; } .btn-purple:hover { background:#8e44d0; }
+    .btn-outline { background:none; border:1.5px solid var(--pink-light); color:var(--pink); border-radius:20px; padding:6px 20px; font-size:13px; cursor:pointer; transition:all 0.2s; }
+    .btn-outline:hover { background:#fff0f5; }
+    .btn-outline-sm { background:none; border:1.5px solid #ddd; color:#999; border-radius:14px; padding:4px 12px; font-size:11px; cursor:pointer; transition:all 0.2s; }
+    .btn-outline-sm:hover { background:#f5f5f5; border-color:#ccc; }
+
+    /* Share */
+    .share-item { background:#f8f9fa; border-radius:12px; padding:14px; margin-bottom:10px; }
+    .share-item .share-content { font-size:14px; color:#333; line-height:1.6; margin-bottom:6px; }
+    .share-item .share-meta { font-size:11px; color:#888; display:flex; justify-content:space-between; }
+    .share-item .share-tag { background:#e9ecef; color:#6c757d; padding:2px 8px; border-radius:8px; font-size:10px; }
+
+    /* Personal Todo */
+    .personal-todo-item { display:flex; align-items:center; gap:10px; background:#f8f9fa; border-radius:12px; padding:12px; margin-bottom:8px; }
+    .personal-todo-item .todo-check { width:20px; height:20px; border:2px solid #ddd; border-radius:50%; cursor:pointer; }
+    .personal-todo-item .todo-check.checked { background:var(--green); border-color:var(--green); position:relative; }
+    .personal-todo-item .todo-check.checked::after { content:'✓'; color:#fff; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12px; }
+    .personal-todo-item .todo-content { flex:1; }
+    .personal-todo-item .todo-text { font-size:14px; color:#333; }
+    .personal-todo-item .todo-text.completed { text-decoration:line-through; color:#999; }
+    .personal-todo-item .todo-meta { font-size:11px; color:#888; display:flex; justify-content:space-between; margin-top:2px; }
+
+    /* Horoscope */
+    .horoscope-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .horoscope-card { background:linear-gradient(135deg,#f8f9fa,#e9ecef); border-radius:14px; padding:16px; text-align:center; }
+    .horoscope-card .sign-icon { font-size:28px; margin-bottom:6px; }
+    .horoscope-card .sign-name { font-size:13px; font-weight:600; color:#333; margin-bottom:2px; }
+    .horoscope-card .sign-date { font-size:11px; color:#888; margin-bottom:8px; }
+    .horoscope-card .horoscope-text { font-size:12px; color:#555; line-height:1.5; margin-bottom:8px; }
+    .horoscope-card .lucky-item { font-size:11px; color:#ff6b9d; }
+
+    /* Quiz */
+    .quiz-popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center; }
+    .quiz-popup.show { display:flex; }
+    .quiz-card { background:#fff; border-radius:20px; padding:24px; max-width:400px; width:90%; max-height:90vh; overflow-y:auto; }
+    .quiz-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .quiz-icon { font-size:32px; }
+    .quiz-title { font-size:18px; font-weight:700; color:#333; }
+    .quiz-timer { margin-left:auto; background:#ff4757; color:#fff; padding:4px 12px; border-radius:12px; font-size:14px; font-weight:600; }
+    .quiz-timer.urgent { animation:pulse 0.8s infinite; }
+    .quiz-image { width:100%; height:180px; object-fit:cover; border-radius:12px; margin-bottom:16px; }
+    .quiz-question { font-size:16px; font-weight:600; color:#333; margin-bottom:16px; text-align:center; }
+    .quiz-options { display:grid; gap:10px; margin-bottom:20px; }
+    .quiz-option { padding:12px; border:2px solid #e9ecef; border-radius:12px; background:#fff; cursor:pointer; text-align:left; font-size:14px; transition:all 0.2s; }
+    .quiz-option:hover { border-color:#ff6b9d; background:#fff5f7; }
+    .quiz-option.selected { border-color:#ff6b9d; background:#fff5f7; }
+    .quiz-option.correct { border-color:#2ed573; background:#f0fff0; }
+    .quiz-option.wrong { border-color:#ff4757; background:#fff0f0; }
+    .quiz-actions { display:flex; gap:10px; justify-content:center; }
+    .quiz-result { display:none; }
+    .quiz-answer { font-size:14px; color:#333; margin-bottom:8px; }
+    .quiz-explanation { font-size:13px; color:#666; line-height:1.5; }
+
+    /* Memory */
+    .memory-wall { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+    .memory-photo-item { position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:pointer; }
+    .memory-photo-item img { width:100%; height:100%; object-fit:cover; }
+    .memory-photo-item .photo-date { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; padding:4px; text-align:center; }
+    .memory-today { background:linear-gradient(135deg,#fff5f7,#fff0e6); border-radius:12px; padding:16px; text-align:center; margin-bottom:12px; }
+    .memory-today .today-photo { width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:8px; }
+
+    /* Todo */
+    .todo-item { background:#f8f9fa; border-radius:12px; padding:14px; margin-bottom:10px; }
+    .todo-item .todo-title { font-size:14px; font-weight:600; color:#333; margin-bottom:4px; }
+    .todo-item .todo-type { display:inline-block; background:#e9ecef; color:#6c757d; padding:2px 8px; border-radius:8px; font-size:10px; margin-left:8px; }
+    .todo-item .todo-meta { font-size:11px; color:#888; margin-bottom:6px; }
+    .todo-item .todo-ai { background:#fff; border-left:3px solid #ff6b9d; border-radius:8px; padding:10px; font-size:12px; color:#555; line-height:1.5; }
+    .todo-item .ai-loading { color:#888; font-style:italic; }
+
+    /* Game */
+    .game-item { background:#f8f9fa; border-radius:12px; padding:14px; margin-bottom:10px; }
+    .game-item.pending { border-left:4px solid #ffc048; }
+    .game-item.accepted { border-left:4px solid #2ed573; }
+    .game-item.rejected { border-left:4px solid #ff4757; }
+    .game-item .game-from { font-size:11px; color:#888; margin-bottom:6px; }
+    .game-item .game-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .game-item .game-name { font-size:14px; font-weight:600; color:#333; }
+    .game-item .game-status { font-size:10px; padding:2px 8px; border-radius:8px; }
+    .game-item .game-status.pending { background:#fff3e0; color:#e67e22; }
+    .game-item .game-status.accepted { background:#e0ffe0; color:#27ae60; }
+    .game-item .game-status.rejected { background:#ffe0e0; color:#e74c3c; }
+    .game-item .game-info { font-size:12px; color:#555; }
+    .game-item .game-actions { display:flex; gap:8px; margin-top:10px; }
+    .game-item .btn-accept, .game-item .btn-reject { padding:6px 12px; border-radius:8px; border:none; cursor:pointer; font-size:11px; }
+    .game-item .btn-accept { background:#2ed573; color:#fff; }
+    .game-item .btn-reject { background:#ff4757; color:#fff; }
+
+    /* Form */
+    .complaint-form,.memory-upload,.todo-form,.invite-form,.share-form,.personal-todo-form,.game-form { display:none; margin-top:12px; }
+    .complaint-form.show,.memory-upload.show,.todo-form.show,.invite-form.show,.share-form.show,.personal-todo-form.show,.game-form.show { display:block; }
+    .complaint-form textarea,.share-form textarea { width:100%; height:70px; border:1.5px solid #ffb3cc; border-radius:12px; padding:10px; font-size:14px; resize:vertical; font-family:inherit; outline:none; }
+    .complaint-form textarea:focus,.share-form textarea:focus { border-color:var(--pink); }
+    .popup-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center; }
+    .popup-overlay.show { display:flex; }
+    .popup-card { background:#fff; border-radius:20px; padding:28px 24px; max-width:380px; width:90%; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,0.2); animation:popIn 0.3s ease; max-height:90vh; overflow-y:auto; }
+    @keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+    .popup-card .popup-icon { font-size:48px; margin-bottom:12px; }
+    .popup-card .popup-title { font-size:18px; font-weight:700; color:var(--red); margin-bottom:8px; }
+    .popup-card .popup-reason { font-size:15px; color:#555; line-height:1.6; margin-bottom:20px; }
+    .popup-card .popup-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+    /* Easter Egg */
+    .easter-egg { position:fixed; z-index:10000; animation:floatEaster 3s ease-out forwards; pointer-events:none; }
+    @keyframes floatEaster { 0%{transform:translateY(0)rotate(0deg);opacity:1} 100%{transform:translateY(-200px)rotate(360deg);opacity:0} }
+
+    /* Firebase Status */
+    .firebase-status { position:fixed; bottom:10px; right:10px; background:rgba(0,0,0,0.7); color:#fff; padding:6px 12px; border-radius:12px; font-size:11px; z-index:1000; }
+    .firebase-status.connected { background:rgba(46,213,115,0.8); }
+    .firebase-status.disconnected { background:rgba(255,71,87,0.8); }
+  </style>
+</head>
+<body>
+<div class="firebase-status">正在连接数据库...</div>
+
+<div id="splashOverlay" class="splash-overlay">
+  <div class="splash-content">
+    <div class="splash-icon">❤️</div>
+    <div id="splashTitle" class="splash-title">今天见面啦！</div>
+    <div id="splashMsg" class="splash-msg">所有的思念都值得<br>所有的等待都美好</div>
+    <button class="splash-dismiss" onclick="dismissSplash()">进入我们的秘密基地</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Role Lock -->
+  <div class="role-lock">
+    <div id="roleInfo" class="role-info">🐭 mi鼠的页面</div>
+    <div id="roleTag" class="role-tag">投诉权限：mi鼠</div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="title">纯猪蛋 & mi鼠</div>
+    <div class="subtitle">异地恋第 <span id="dayCount">1</span> 天 · 实时同步版</div>
+  </div>
+
+  <!-- Countdown -->
+  <div class="section countdown-section">
+    <div class="section-title"><span class="icon">⏳</span>下次见面倒计时</div>
+    <div class="target">2026年6月12日</div>
+    <div class="countdown-grid">
+      <div class="cd-item"><div id="cd-days" class="num">0</div><div class="unit">天</div></div>
+      <div class="cd-item"><div id="cd-hours" class="num">0</div><div class="unit">小时</div></div>
+      <div class="cd-item"><div id="cd-mins" class="num">0</div><div class="unit">分钟</div></div>
+      <div class="cd-item"><div id="cd-secs" class="num">0</div><div class="unit">秒</div></div>
+    </div>
+  </div>
+
+  <!-- Mood -->
+  <div class="section">
+    <div class="section-title"><span class="icon">😊</span>此刻心情</div>
+    <div class="section-hint">点击表情发送给对方，实时同步</div>
+    <div class="mood-btn-group">
+      <button class="mood-btn" data-mood="😊">😊</button>
+      <button class="mood-btn" data-mood="😍">😍</button>
+      <button class="mood-btn" data-mood="🥰">🥰</button>
+      <button class="mood-btn" data-mood="😘">😘</button>
+      <button class="mood-btn" data-mood="🤗">🤗</button>
+      <button class="mood-btn" data-mood="😭">😭</button>
+      <button class="mood-btn" data-mood="😡">😡</button>
+      <button class="mood-btn" data-mood="🤒">🤒</button>
+    </div>
+    <div id="moodStatus" class="mood-status"></div>
+  </div>
+
+  <!-- Map -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📍</span>我们的距离</div>
+    <div class="map-canvas-wrap">
+      <canvas id="mapCanvas"></canvas>
+    </div>
+    <div class="city-tags">
+      <span>成都</span>
+      <span>约 1800km</span>
+      <span>嘉善</span>
+    </div>
+  </div>
+
+  <!-- Question -->
+  <div class="section">
+    <div class="section-title"><span class="icon">💬</span>每日一问</div>
+    <div class="question-card" id="questionCard">加载中...</div>
+    <button class="btn-outline" onclick="randomQuestion()" style="margin-top:12px;width:100%;">换一个问题</button>
+  </div>
+
+  <!-- Note -->
+  <div class="section" style="text-align:center">
+    <div class="section-title"><span class="icon">💌</span>今天的小纸条</div>
+    <div class="note-card" id="noteCard">加载中...</div>
+  </div>
+
+  <!-- Daily Share -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">📝</span>日常分享
+      <span id="shareBadge" class="badge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">写下今天的日常，对方会实时看到</div>
+    <div id="shareList" class="share-list"></div>
+    <button class="btn-outline" onclick="toggleShareForm()" style="width:100%;">+ 写点日常</button>
+    <div id="shareForm" class="share-form">
+      <select id="shareType" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+        <option value="inspiration">💡 灵感想法</option>
+        <option value="book">📚 读书笔记</option>
+        <option value="food">🍜 美食记录</option>
+        <option value="health">💩 健康状态</option>
+        <option value="mood">😊 心情随笔</option>
+        <option value="work">💼 工作学习</option>
+      </select>
+      <textarea id="shareContent" placeholder="今天有什么想分享的？"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-green" onclick="submitShare()" style="flex:1;">发布</button>
+        <button class="btn btn-outline-sm" onclick="toggleShareForm()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Personal Todo -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">✅</span>今日待办
+      <span id="personalTodoBadge" class="badge" style="display:none">0/0</span>
+    </div>
+    <div class="section-hint">记录今天要做的事，实时同步进度</div>
+    <div id="personalTodoList" class="personal-todo-list"></div>
+    <button class="btn-outline" onclick="togglePersonalTodoForm()" style="width:100%;">+ 添加任务</button>
+    <div id="personalTodoForm" class="personal-todo-form">
+      <input type="text" id="personalTodoText" placeholder="今天要做什么？" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-green" onclick="addPersonalTodo()" style="flex:1;">添加</button>
+        <button class="btn btn-outline-sm" onclick="togglePersonalTodoForm()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Horoscope -->
+  <div class="section">
+    <div class="section-title"><span class="icon">✨</span>今日星座运势</div>
+    <div id="horoscopeGrid" class="horoscope-grid"></div>
+  </div>
+
+  <!-- Daily Quiz -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🧠</span><span id="quizDayTitle">第1天 · 知识挑战</span>
+      <span id="quizBadge" class="badge" style="background:linear-gradient(135deg,#ffc048,#ff8e53)">今日未答</span>
+    </div>
+    <div class="section-hint">每天一道题，答对得1分，实时同步分数</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:13px;color:#333;">mi鼠: <span id="scoreYou" style="font-weight:600;color:#ff6b9d;">0</span>分</div>
+      <div style="font-size:13px;color:#333;">纯猪蛋: <span id="scoreTa" style="font-weight:600;color:#ff8e53;">0</span>分</div>
+    </div>
+    <button class="btn btn-purple" onclick="startDailyQuiz()" style="width:100%;">开始今日挑战</button>
+  </div>
+
+  <!-- Complaint System -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">⚖️</span>投诉系统
+      <span id="complaintBadge" class="badge" style="display:none">0</span>
+    </div>
+    <div id="complaintHint" class="section-hint">只有mi鼠可以发起投诉，纯猪蛋只能处理</div>
+    <div id="complaintList" class="complaint-list"></div>
+    <button id="btnAddComplaint" class="btn btn-red" onclick="toggleComplaintForm()" style="width:100%;">+ 发起投诉</button>
+    <div id="complaintForm" class="complaint-form">
+      <textarea id="complaintReason" placeholder="写下生气的原因..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-red" onclick="submitComplaint()" style="flex:1;">提交投诉</button>
+        <button class="btn btn-outline-sm" onclick="toggleComplaintForm()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory Photo Wall -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">📸</span>回忆相册
+      <span id="photoBadge" class="badge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">上传我们的照片，实时同步回忆</div>
+    <div id="memoryToday" class="memory-today">加载中...</div>
+    <div id="memoryWall" class="memory-wall"></div>
+    <button class="btn-outline" onclick="toggleMemoryUpload()" style="width:100%;">+ 上传照片</button>
+    <div id="memoryUpload" class="memory-upload">
+      <input type="text" id="photoUrl" placeholder="粘贴图片链接 (jpg/png/gif/webp)" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      <input type="text" id="photoDate" placeholder="照片日期 (可选，默认今天)" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-blue" onclick="uploadPhoto()" style="flex:1;">上传</button>
+        <button class="btn btn-outline-sm" onclick="toggleMemoryUpload()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- To-Do List (AI Enhanced) -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🎯</span>心愿清单
+      <span id="todoBadge" class="badge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">记录想一起做的事，AI会给出推荐</div>
+    <div id="todoList" class="todo-list"></div>
+    <button class="btn-outline" onclick="toggleTodoForm()" style="width:100%;">+ 添加心愿</button>
+    <div id="todoForm" class="todo-form">
+      <input type="text" id="todoTitle" placeholder="想一起做什么？" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      <select id="todoType" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+        <option value="play">🎮 想玩</option>
+        <option value="eat">🍜 想吃</option>
+        <option value="go">✈️ 想去</option>
+        <option value="watch">🎬 想看</option>
+        <option value="buy">🛍️ 想买</option>
+      </select>
+      <textarea id="todoNotes" placeholder="备注 (可选)" style="width:100%;height:50px;border:1.5px solid #ffb3cc;border-radius:8px;padding:8px;font-size:13px;resize:vertical;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-purple" onclick="addTodo()" style="flex:1;">添加</button>
+        <button class="btn btn-outline-sm" onclick="toggleTodoForm()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Invitation -->
+  <div class="section">
+    <div class="section-title">
+      <span class="icon">🎮</span>游戏邀约
+      <span id="gameBadge" class="badge" style="display:none">0</span>
+    </div>
+    <div class="section-hint">发起游戏邀约，对方实时收到通知</div>
+    <div id="gameList" class="game-list"></div>
+    <button class="btn-outline" onclick="toggleGameForm()" style="width:100%;">+ 发起邀约</button>
+    <div id="gameForm" class="game-form">
+      <select id="gameName" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+        <option value="王者荣耀">王者荣耀</option>
+        <option value="和平精英">和平精英</option>
+        <option value="原神">原神</option>
+        <option value="金铲铲之战">金铲铲之战</option>
+        <option value="蛋仔派对">蛋仔派对</option>
+        <option value="其他">其他游戏</option>
+      </select>
+      <input type="text" id="gameTime" placeholder="邀约时间 (如：今晚8点)" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      <input type="text" id="gameNote" placeholder="备注 (可选)" style="width:100%;padding:8px;border:1.5px solid #ffb3cc;border-radius:8px;margin-bottom:8px;font-size:13px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-orange" onclick="submitGameInvite()" style="flex:1;">发送邀约</button>
+        <button class="btn btn-outline-sm" onclick="toggleGameForm()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complaint Popup -->
+  <div id="complaintPopup" class="popup-overlay" data-complaint-id="">
+    <div class="popup-card">
+      <div class="popup-icon">⚖️</div>
+      <div class="popup-title">收到投诉</div>
+      <div id="popupReason" class="popup-reason"></div>
+      <div class="popup-actions">
+        <button class="btn btn-green" onclick="handleComplaint('done')">我错了，已改正</button>
+        <button class="btn btn-outline-sm" onclick="handleComplaint('pending')">稍后处理</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz Popup -->
+  <div id="quizPopup" class="quiz-popup">
+    <div class="quiz-card">
+      <div class="quiz-header">
+        <div class="quiz-icon" id="quizIcon">🧠</div>
+        <div class="quiz-title" id="quizTitle">今日竞猜</div>
+        <div class="quiz-timer" id="quizTimer">30</div>
+      </div>
+      <img id="quizImage" class="quiz-image" src="" alt="题目图片">
+      <div class="quiz-question" id="quizQuestion"></div>
+      <div id="quizOptions" class="quiz-options"></div>
+      <div id="quizActions" class="quiz-actions">
+        <button class="btn btn-purple" onclick="submitQuizAnswer()">提交答案</button>
+        <button class="btn btn-outline-sm" onclick="closeQuiz()">放弃</button>
+      </div>
+      <div id="quizResult" class="quiz-result">
+        <div class="quiz-answer" id="quizAnswer"></div>
+        <div class="quiz-explanation" id="quizExplanation"></div>
+        <button class="btn btn-outline" onclick="closeQuiz()" style="margin-top:16px;width:100%;">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">🐷 + 🐭 = ❤️ · 2018.4.8 - ∞ · 实时同步版</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+<script>
+// ==================== FIREBASE CONFIG ====================
+const firebaseConfig = {
+  projectId: "lovecouple-626",
+  databaseURL: "https://lovecouple-626-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const database = firebase.database(app);
+
+// ==================== GLOBAL STATE ====================
+const isYou = true; // Fixed: you can only be "you", he can only be "ta"
+const deviceId = Math.random().toString(36).substr(2) + Date.now().toString(36);
+let quizTimer = null;
+let quizSelectedOption = null;
+let quizStartTime = null;
+let firebaseListeners = [];
+
+function getStoreKey(key) { return 'couple_' + key; }
+
+// ==================== FIREBASE UTILS ====================
+function updateFirebaseStatus(connected) {
+  const statusEl = document.querySelector('.firebase-status');
+  statusEl.textContent = connected ? '数据库已连接' : '数据库连接断开';
+  statusEl.className = `firebase-status ${connected ? 'connected' : 'disconnected'}`;
+  console.log('Firebase connection status:', connected);
+}
+
+function logFirebaseError(error) {
+  console.error('Firebase error:', error.code, error.message);
+  const statusEl = document.querySelector('.firebase-status');
+  statusEl.textContent = `数据库错误: ${error.code}`;
+  statusEl.className = 'firebase-status disconnected';
+}
+
+function setupFirebaseListeners() {
+  // Listen for connection status
+  const connectedRef = database.ref('.info/connected');
+  connectedRef.on('value', (snap) => {
+    updateFirebaseStatus(snap.val() === true);
+  }, (error) => {
+    logFirebaseError(error);
+  });
+
+  // Listen for mood changes
+  const moodRef = database.ref('mood');
+  moodRef.on('value', (snapshot) => {
+    const moodData = snapshot.val();
+    if (moodData) {
+      updateMoodStatus(moodData);
+    }
+  });
+
+  // Listen for shares
+  const sharesRef = database.ref('shares');
+  sharesRef.on('value', (snapshot) => {
+    const sharesData = snapshot.val();
+    if (sharesData) {
+      renderShares(sharesData);
+    }
+  });
+
+  // Listen for personal todos
+  const personalTodosRef = database.ref('personal_todos');
+  personalTodosRef.on('value', (snapshot) => {
+    const todosData = snapshot.val();
+    if (todosData) {
+      renderPersonalTodos(todosData);
+    }
+  });
+
+  // Listen for complaints
+  const complaintsRef = database.ref('complaints');
+  complaintsRef.on('value', (snapshot) => {
+    const complaintsData = snapshot.val();
+    if (complaintsData) {
+      renderComplaints(complaintsData);
+      checkPendingComplaints(complaintsData);
+    }
+  });
+
+  // Listen for photos
+  const photosRef = database.ref('photos');
+  photosRef.on('value', (snapshot) => {
+    const photosData = snapshot.val();
+    if (photosData) {
+      renderPhotos(photosData);
+    }
+  });
+
+  // Listen for todos
+  const todosRef = database.ref('todos');
+  todosRef.on('value', (snapshot) => {
+    const todosData = snapshot.val();
+    if (todosData) {
+      renderTodos(todosData);
+    }
+  });
+
+  // Listen for games
+  const gamesRef = database.ref('games');
+  gamesRef.on('value', (snapshot) => {
+    const gamesData = snapshot.val();
+    if (gamesData) {
+      renderGames(gamesData);
+    }
+  });
+
+  // Listen for quiz scores
+  const scoresRef = database.ref('scores');
+  scoresRef.on('value', (snapshot) => {
+    const scoresData = snapshot.val();
+    if (scoresData) {
+      updateScoreDisplay(scoresData);
+    }
+  });
+
+  // Store listeners for cleanup
+  firebaseListeners = [
+    connectedRef, moodRef, sharesRef, personalTodosRef, 
+    complaintsRef, photosRef, todosRef, gamesRef, scoresRef
+  ];
+}
+
+function cleanupFirebaseListeners() {
+  firebaseListeners.forEach(ref => ref.off());
+  firebaseListeners = [];
+}
+
+// ==================== DATA HELPERS ====================
+function objectToArray(obj) {
+  if (!obj) return [];
+  return Object.keys(obj).map(key => ({ id: key, ...obj[key] }));
+}
+
+function arrayToObject(arr) {
+  if (!arr) return {};
+  const obj = {};
+  arr.forEach(item => {
+    obj[item.id] = item;
+  });
+  return obj;
+}
+
+// ==================== MEETING DAY SPLASH ====================
+function checkMeetingDay() {
+  const today = new Date();
+  const target = new Date('2026-06-12T00:00:00');
+  const isMeetingDay = today.getFullYear() === target.getFullYear() &&
+                      today.getMonth() === target.getMonth() &&
+                      today.getDate() === target.getDate();
+  
+  if (!isMeetingDay) return;
+  
+  const splash = document.getElementById('splashOverlay');
+  const title = document.getElementById('splashTitle');
+  const msg = document.getElementById('splashMsg');
+  
+  const titles = ['今天见面啦！', '终于等到你！', '见面日快乐！', '双向奔赴的今天'];
+  const messages = [
+    '所有的思念都值得<br>所有的等待都美好',
+    '跨越山海，只为与你相拥<br>今天是最特别的日子',
+    '倒计时归零，爱意满格<br>今天要好好在一起',
+    '异地恋的终点是今天<br>我们的故事翻开新篇章'
+  ];
+  
+  title.textContent = titles[Math.floor(Math.random() * titles.length)];
+  msg.innerHTML = messages[Math.floor(Math.random() * messages.length)];
+  
+  const particles = ['💕', '❤️', '✨', '🎉', '🥰', '💖', '🌟', '💫'];
+  for (let i = 0; i < 20; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'splash-particle';
+    particle.textContent = particles[Math.floor(Math.random() * particles.length)];
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.top = Math.random() * 100 + '%';
+    particle.style.animationDelay = Math.random() * 2 + 's';
+    particle.style.fontSize = (Math.random() * 20 + 16) + 'px';
+    splash.appendChild(particle);
+  }
+  
+  splash.classList.add('show');
+}
+
+function dismissSplash() {
+  document.getElementById('splashOverlay').classList.remove('show');
+}
+
+// ==================== COUNTDOWN ====================
+const targetDate = new Date('2026-06-12T00:00:00'); // 下次见面
+function updateCountdown() {
+  const now = new Date();
+  const diff = targetDate - now;
+  if (diff <= 0) {
+    ['days','hours','mins','secs'].forEach(u => document.getElementById('cd-'+u).textContent = '0');
+    return;
+  }
+  document.getElementById('cd-days').textContent = Math.floor(diff/(1000*60*60*24));
+  document.getElementById('cd-hours').textContent = Math.floor((diff%(1000*60*60*24))/(1000*60*60));
+  document.getElementById('cd-mins').textContent = Math.floor((diff%(1000*60*60))/(1000*60));
+  document.getElementById('cd-secs').textContent = Math.floor((diff%(1000*60))/1000);
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+// ==================== MOOD ====================
+document.querySelectorAll('.mood-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const mood = this.dataset.mood;
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    
+    // Save to Firebase
+    const moodData = {
+      mood,
+      time: Date.now(),
+      from: isYou ? 'you' : 'ta',
+      deviceId
+    };
+    database.ref('mood').set(moodData);
+  });
+});
+
+function updateMoodStatus(moodData) {
+  const mood = moodData.mood;
+  const t = moodData.time;
+  const from = moodData.from;
+  let ago = '';
+  if (t) {
+    const mins = Math.floor((Date.now() - t) / 60000);
+    ago = mins < 1 ? '刚刚' : mins < 60 ? mins + '分钟前' : Math.floor(mins/60) + '小时前';
+  }
+  const who = from === (isYou ? 'you' : 'ta') ? 'mi鼠' : '纯猪蛋';
+  document.getElementById('moodStatus').textContent =
+    mood ? `${who} 刚才发来：${mood}（${ago}）` : '';
+  if (mood) {
+    const btn = document.querySelector(`[data-mood="${mood}"]`);
+    if (btn) { document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+  }
+}
+
+// ==================== MAP ====================
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+let mapAnimFrame = 0;
+function drawMap() {
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  canvas.width = w * (window.devicePixelRatio||1);
+  canvas.height = h * (window.devicePixelRatio||1);
+  ctx.setTransform(window.devicePixelRatio||1, 0, 0, window.devicePixelRatio||1, 0, 0);
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#e3f2fd'); grad.addColorStop(0.3, '#f3e5f5');
+  grad.addColorStop(0.7, '#fff3e0'); grad.addColorStop(1, '#fce4ec');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+
+  // Grid lines (subtle map feel)
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 0.5;
+  for (let i = 0; i < w; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); }
+  for (let j = 0; j < h; j += 30) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(w, j); ctx.stroke(); }
+
+  // Simplified China terrain outlines (decorative)
+  ctx.strokeStyle = 'rgba(180,140,120,0.2)'; ctx.fillStyle = 'rgba(200,180,160,0.12)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w*0.1, h*0.25); ctx.quadraticCurveTo(w*0.25, h*0.15, w*0.4, h*0.2);
+  ctx.quadraticCurveTo(w*0.55, h*0.1, w*0.7, h*0.12);
+  ctx.quadraticCurveTo(w*0.85, h*0.15, w*0.9, h*0.25);
+  ctx.quadraticCurveTo(w*0.88, h*0.6, w*0.7, h*0.8);
+  ctx.quadraticCurveTo(w*0.5, h*0.85, w*0.3, h*0.8);
+  ctx.quadraticCurveTo(w*0.15, h*0.65, w*0.1, h*0.25);
+  ctx.fill(); ctx.stroke();
+
+  // City positions: Chengdu (left-west), Jiashan (right-east)
+  const cx = w * 0.22, cy = h * 0.55;  // 成都 (western China)
+  const jx = w * 0.80, jy = h * 0.42;  // 嘉善 (eastern coast)
+
+  // Curved connection line
+  const midX = (cx + jx) / 2;
+  const midY = Math.min(cy, jy) - 40;
+
+  // Glow effect
+  ctx.shadowColor = 'rgba(255,107,157,0.4)'; ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.setLineDash([8, 4]);
+  ctx.strokeStyle = '#ff6b9d'; ctx.lineWidth = 2.8;
+  ctx.moveTo(cx, cy);
+  ctx.quadraticCurveTo(midX, midY, jx, jy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+
+  // Pulsing heart on the line
+  const t = 0.5 + Math.sin(mapAnimFrame * 0.03) * 0.15;
+  const hx = cx + (jx - cx) * t;
+  const hy = cy + (jy - cy) * t - Math.sin(t * Math.PI) * 35;
+  ctx.font = '22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('❤', hx, hy);
+
+  // Distance label
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#ff6b9d';
+  ctx.fillText('约 1800km', midX, midY - 10);
+
+  // Chengdu marker
+  drawCityMarker(cx, cy, '#ff6b9d', '成都');
+  // Jiashan marker
+  drawCityMarker(jx, jy, '#ff8e53', '嘉善');
+
+  // Small plane icon along the path
+  const pt = 0.3 + (mapAnimFrame * 0.01) % 0.6;
+  const px = cx + (jx - cx) * pt;
+  const py = cy + (jy - cy) * pt - Math.sin(pt * Math.PI) * 35 - 8;
+  ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('✈️', px, py);
+
+  mapAnimFrame++;
+  requestAnimationFrame(() => { if (canvas.isConnected) drawMap(); });
+}
+
+function drawCityMarker(x, y, color, name) {
+  // Outer ring
+  ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2);
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fill();
+  // Inner dot
+  ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  // Name label
+  ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#333';
+  ctx.fillText(name, x, y + 28);
+}
+
+window.addEventListener('resize', () => { drawMap(); });
+drawMap();
+
+// ==================== QUESTION ====================
+const questions = [
+  '如果明天就能见面，你最想一起做什么？','你最喜欢我们在一起的哪个瞬间？',
+  '用一个词形容我们的关系，你会选哪个？','下次旅行你最想去哪里？为什么？',
+  '我做过什么事让你特别感动？','如果有时光机，你想回到我们哪一天？',
+  '你觉得我们最像哪对电影情侣？','你最期待我们未来的什么？',
+  '如果给我起一个专属昵称，会是什么？','我们之间最好笑的回忆是什么？',
+  '你觉得异地恋最难的地方是什么？','你理想中的约会一天是怎样的？',
+  '有没有哪首歌会让你想起我？','如果一起养宠物，你想养什么？',
+  '你觉得我最大的优点是什么？','下次见面第一件事想做什么？',
+  '你最想和我一起完成的一件事？','如果用一个颜色形容我，是什么颜色？',
+  '你心里我们的爱情是什么味道的？','你觉得十年后我们会是什么样子？',
+  '如果让你用三个词形容我，会是哪三个？','你第一次见到我时心里想的是什么？',
+  '你觉得我什么时候最好看？','说一个你一直想对我说但还没说出口的话',
+  '你觉得什么样的爱情最令人羡慕？','如果你可以带我瞬移去任何地方，第一站去哪里？',
+  '你觉得两个人在一起最重要的是什么？','你生气时最希望我怎么做？',
+  '你最喜欢我身上哪个地方？（可以是非外貌的）','有没有哪部电影我们一起看的让你印象最深？',
+  '如果有一天我变成小动物，你觉得我会是什么？','你最想和我一起学什么新技能？',
+  '你觉得我们吵架后最好的和好方式是什么？','如果我们在同一个城市，周末通常怎么过？',
+  '你觉得你的朋友们怎么评价我们的关系？','你希望我改掉的一个小习惯是什么？',
+  '如果让你选一种花来代表我，你会选什么花？','你做过最勇敢的事情是什么？是因为我吗？',
+  '你觉得我们谁更浪漫？为什么？','你最想和我一起去哪个国家？',
+  '如果我们可以互换一天身体，你最想体验我的什么？','你觉得异地恋最大的收获是什么？',
+  '有没有哪个瞬间你觉得"就是这个人了"？','你最喜欢我穿什么颜色的衣服？',
+  '如果我们一起开一家店，你想开什么店？','你觉得我们谁先说出"我爱你"的应该是什么时候？',
+  '你心情不好的时候，我最应该做什么？','如果让你写一本关于我们的书，书名会是什么？',
+  '你有什么一直想做但还没机会做的事？','你觉得惊喜和日常陪伴哪个更重要？',
+  '如果可以回到过去改变一件事，你会改变什么？','你觉得我们老了以后会是什么样子？',
+  '你最想和我一起看的演唱会是谁的？','你觉得我什么时候最可爱？',
+  '如果我们只能保留一件回忆物品，你会选哪件？','你觉得异地期间最幸福的时刻是什么时候？',
+  '如果让你给我们的爱情打分，去掉一个最高分和一个最低分，还剩多少？','你喜欢的亲密方式是什么？（拥抱/牵手/摸头杀...）',
+  '你觉得你最了解我的哪一点？','如果我们吵架了，谁先低头？你觉得应该是谁？',
+  '你对我哪件事印象最深？（好的或不好的都可以）','如果允许你做一件疯狂的事，你会做什么？',
+  '你觉得我的朋友们怎么看我？','你期待我们婚礼是什么风格的？',
+  '你觉得距离对我们来说是考验还是催化剂？','你最近一次梦到我是什么时候？梦到了什么？',
+  '如果可以给我超能力，你想给我什么超能力？','你觉得爱一个人需要理由吗？你对我的理由是？',
+  '你最喜欢哪个季节和我在一起？','你觉得我们之间谁像猫谁像狗？',
+  '你觉得我什么时候对你最依赖？','你最近有没有偷偷关注我的社交动态？哪条最打动你？',
+  '如果让你用一个emoji来总结我，你会选哪个？','你最想和我一起去的地方是哪里？不限制预算的话。',
+  '你觉得异地期间你最大的变化是什么？','你最想听我唱哪首歌？',
+  '你觉得什么小细节最能代表我们的默契？','如果可以改变我们相遇的方式，你会改成什么样？',
+  '你觉得日常生活中什么样的小事会让你想到我？','你最期待的下次约会地点是哪里？',
+  '如果我们在一起做一顿饭，你负责什么？','你觉得我们适合一起创业吗？做什么？',
+  '你觉得异地期间最艰难的时刻是什么？怎么熬过来的？','你最喜欢我不经意间说什么话？',
+  '如果你把我的照片设成手机壁纸了，是哪一张？','你觉得一起打游戏是不是增进感情的方式？',
+  '你理想中的家是什么样子的？','你觉得我身上有什么是别人没有发现的宝藏特质？',
+  '什么情况下你会特别想立刻飞到我身边？','你觉得爱情里仪式感重要吗？你想要什么样的仪式感？',
+  '如果可以重新选择，你还会选择异地吗？','你觉得我们之间最默契的一件事是什么？',
+  '你觉得我哄你的方式哪次最让你满意？','如果让你给我写一封情书，第一句会是什么？',
+  '你最想和我一起尝试的运动是什么？','你觉得思念一个人到极致是什么感觉？',
+  '你觉得情侣之间需要多大的个人空间？','你觉得我做什么事会让你血压升高？',
+  '你有没有偷偷给我准备过什么惊喜？','如果我们的故事被拍成电影，你希望谁演我？',
+  '你觉得我笑起来好看还是不笑的时候好看？','你最近有没有学会什么新东西想和我分享？',
+  '你觉得情侣之间最不能触碰的底线是什么？','如果可以给过去的自己说一句话，关于我们的关系，你会说什么？',
+  '你觉得我们之间还需要磨合的方面是什么？','你最近有没有吃到什么特别好吃的东西想带我去？',
+  '你觉得什么样的晚安方式最能让你安心入睡？','你有没有觉得异地的某些时刻反而更甜？',
+  '你觉得我对你最大的影响是什么？','你觉得在一起之后你有什么保留或改变？',
+  '如果让你用一首歌来表达此刻对我的感觉，会是哪首？','你觉得争吵后的冷静时间多长合适？',
+  '你幻想过和我一起度过的最完美的一天是什么样的？','你最近有没有刷到什么好笑的想要分享给我？',
+];
+function randomQuestion() {
+  const card = document.getElementById('questionCard');
+  card.style.opacity='0';
+  setTimeout(()=>{ card.textContent=questions[Math.floor(Math.random()*questions.length)]; card.style.opacity='1'; },200);
+}
+randomQuestion();
+
+// ==================== NOTE ====================
+const notes = [
+  '每天早上醒来第一件事就是想你。☀️','今天吃到了一家超好吃的店，记下来下次带你去！',
+  '看到路边的小猫，想起你说想养一只。','工作再忙也要记得吃饭哦，我的小猪。🐷',
+  '翻到我们上次的照片，笑得好开心。','今天天气好好，好想和你一起去散步。',
+  '你喜欢的那个歌手又出新歌了，快去听！','晚上记得盖好被子，别着凉了。',
+  '数着日子等见面，每一天都值得期待。','今天也比昨天更爱你一点点。💕',
+  '要是能瞬间移动就好了，每天都能见到你。','工作累的时候就想，你在另一个城市也在努力呢。',
+  '买了一个小礼物，等见面给你惊喜。','今天看了部电影，里面的情侣好像我们。','好想现在就抱抱你。',
+];
+document.getElementById('noteCard').textContent = notes[Math.floor(Math.random()*notes.length)];
+
+// ==================== DAILY SHARE ====================
+function submitShare() {
+  const type = document.getElementById('shareType').value;
+  const content = document.getElementById('shareContent').value.trim();
+  if (!content) return alert('请写下分享内容');
+  
+  const typeNames = {
+    inspiration: '💡 灵感想法',
+    book: '📚 读书笔记',
+    food: '🍜 美食记录',
+    health: '💩 健康状态',
+    mood: '😊 心情随笔',
+    work: '💼 工作学习'
+  };
+  
+  const shareId = Date.now().toString();
+  const shareData = {
+    id: shareId,
+    type,
+    typeName: typeNames[type],
+    content,
+    from: isYou ? 'you' : 'ta',
+    time: new Date().toLocaleString('zh-CN'),
+    date: new Date().toDateString()
+  };
+  
+  // Save to Firebase
+  database.ref(`shares/${shareId}`).set(shareData);
+  
+  document.getElementById('shareContent').value = '';
+  document.getElementById('shareForm').classList.remove('show');
+  triggerEasterEgg();
+}
+
+function renderShares(sharesData) {
+  const shares = objectToArray(sharesData);
+  const container = document.getElementById('shareList');
+  const badge = document.getElementById('shareBadge');
+  
+  const todayShares = shares.filter(s => s.date === new Date().toDateString());
+  badge.textContent = todayShares.length;
+  badge.style.display = todayShares.length > 0 ? 'inline-block' : 'none';
+  
+  if (shares.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没有分享记录，写下今天的日常吧~</div>';
+    return;
+  }
+  
+  container.innerHTML = shares.slice().reverse().map(s => {
+    const who = s.from === 'you' ? 'mi鼠' : '纯猪蛋';
+    return `<div class="share-item">
+      <div class="share-content">${s.content}</div>
+      <div class="share-meta">
+        <span>${who} · ${s.time}</span>
+        <span class="share-tag">${s.typeName}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleShareForm() {
+  document.getElementById('shareForm').classList.toggle('show');
+}
+
+// ==================== PERSONAL TODO ====================
+function addPersonalTodo() {
+  const text = document.getElementById('personalTodoText').value.trim();
+  if (!text) return alert('请输入任务内容');
+  
+  const todoId = Date.now().toString();
+  const todoData = {
+    id: todoId,
+    text,
+    completed: false,
+    from: isYou ? 'you' : 'ta',
+    time: new Date().toLocaleString('zh-CN'),
+    date: new Date().toDateString()
+  };
+  
+  // Save to Firebase
+  database.ref(`personal_todos/${todoId}`).set(todoData);
+  
+  document.getElementById('personalTodoText').value = '';
+  document.getElementById('personalTodoForm').classList.remove('show');
+}
+
+function togglePersonalTodo(id) {
+  // Get current data
+  database.ref(`personal_todos/${id}`).once('value').then(snapshot => {
+    const todo = snapshot.val();
+    if (todo) {
+      todo.completed = !todo.completed;
+      database.ref(`personal_todos/${id}`).set(todo);
+    }
+  });
+}
+
+function renderPersonalTodos(todosData) {
+  const todos = objectToArray(todosData);
+  const container = document.getElementById('personalTodoList');
+  const badge = document.getElementById('personalTodoBadge');
+  
+  const todayTodos = todos.filter(t => t.date === new Date().toDateString());
+  const completedCount = todayTodos.filter(t => t.completed).length;
+  const totalCount = todayTodos.length;
+  
+  badge.textContent = `${completedCount}/${totalCount}`;
+  badge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+  
+  if (todayTodos.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">今天还没有添加任务，规划一下今天要做的事吧~</div>';
+    return;
+  }
+  
+  container.innerHTML = todayTodos.map(t => {
+    const who = t.from === 'you' ? 'mi鼠' : '纯猪蛋';
+    return `<div class="personal-todo-item">
+      <div class="todo-check ${t.completed ? 'checked' : ''}" onclick="togglePersonalTodo('${t.id}')"></div>
+      <div class="todo-content">
+        <div class="todo-text ${t.completed ? 'completed' : ''}">${t.text}</div>
+        <div class="todo-meta">
+          <span>${who} · ${t.time.split(' ')[1]}</span>
+          <span>${t.completed ? '✅ 已完成' : '⏳ 进行中'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePersonalTodoForm() {
+  document.getElementById('personalTodoForm').classList.toggle('show');
+}
+
+// ==================== HOROSCOPE ====================
+function renderHoroscope() {
+  const today = new Date();
+  const day = today.getDate();
+  const month = today.getMonth() + 1;
+  
+  // Mock horoscope data (in real app, fetch from API)
+  const cancerLucky = ['粉色', '数字7', '东方', '水晶'];
+  const capricornLucky = ['蓝色', '数字4', '北方', '金属'];
+  
+  const cancerText = [
+    '今天情绪比较敏感，容易因为小事感动或难过。适合在家整理心情，听听音乐，写写日记。',
+    '工作上有不错的机会，但需要主动争取。感情方面，多表达自己的想法，避免让对方猜。',
+    '健康注意肠胃，少吃生冷食物。适合和伴侣视频聊天，分享今天的见闻。',
+    '灵感迸发的一天，适合创作或学习新技能。晚上可能会有小惊喜哦！'
+  ][day % 4];
+  
+  const capricornText = [
+    '工作状态很好，效率高，适合处理重要事务。感情方面需要多一些浪漫表达。',
+    '今天比较务实，可能会考虑未来的规划。适合和伴侣讨论共同的目标。',
+    '健康方面注意久坐，多起来活动。财运不错，可能会有意外的小收入。',
+    '需要多一些耐心，对待伴侣的小情绪要温柔。晚上适合一起看部电影。'
+  ][day % 4];
+  
+  document.getElementById('horoscopeGrid').innerHTML = `
+    <div class="horoscope-card">
+      <div class="sign-icon">♋️</div>
+      <div class="sign-name">巨蟹座 · mi鼠 · 6.26</div>
+      <div class="sign-date">${month}月${day}日</div>
+      <div class="horoscope-text">${cancerText}</div>
+      <div class="lucky-item">幸运物：${cancerLucky[day % 4]}</div>
+    </div>
+    <div class="horoscope-card">
+      <div class="sign-icon">♑️</div>
+      <div class="sign-name">摩羯座 · 纯猪蛋 · 12.30</div>
+      <div class="sign-date">${month}月${day}日</div>
+      <div class="horoscope-text">${capricornText}</div>
+      <div class="lucky-item">幸运物：${capricornLucky[day % 4]}</div>
+    </div>
+  `;
+}
+
+// ==================== DAILY QUIZ ====================
+const quizQuestions = [
+  {
+    id: 1,
+    image: 'https://images.unsplash.com/photo-1562690868-60bbe7293e94?w=400&h=300&fit=crop',
+    question: '荷兰的国花是什么？',
+    options: ['玫瑰', '郁金香', '向日葵', '百合'],
+    answer: 1,
+    explanation: '郁金香是荷兰的国花，原产于土耳其，16世纪传入荷兰后风靡全国。'
+  },
+  {
+    id: 2,
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
+    question: '世界最高峰是哪座？',
+    options: ['K2', '珠穆朗玛峰', '干城章嘉峰', '洛子峰'],
+    answer: 1,
+    explanation: '珠穆朗玛峰海拔8848.86米，位于中国与尼泊尔边境，是世界最高峰。'
+  },
+  {
+    id: 3,
+    image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce98f8?w=400&h=300&fit=crop',
+    question: '埃菲尔铁塔位于哪个城市？',
+    options: ['伦敦', '罗马', '巴黎', '柏林'],
+    answer: 2,
+    explanation: '埃菲尔铁塔位于法国巴黎，建于1889年，是巴黎最高建筑。'
+  },
+  {
+    id: 4,
+    image: 'https://images.unsplash.com/photo-1504575958497-ccdd586c2997?w=400&h=300&fit=crop',
+    question: '考拉主要吃哪种食物？',
+    options: ['竹子', '桉树叶', '香蕉', '草'],
+    answer: 1,
+    explanation: '考拉是澳大利亚特有动物，几乎只吃桉树叶，每天睡眠可达20小时。'
+  },
+  {
+    id: 5,
+    image: 'https://images.unsplash.com/photo-1460013798855-3631415442e8?w=400&h=300&fit=crop',
+    question: '小提琴有几根弦？',
+    options: ['3根', '4根', '5根', '6根'],
+    answer: 1,
+    explanation: '小提琴共有4根弦，从低到高依次为G、D、A、E。'
+  },
+  {
+    id: 6,
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop',
+    question: '地球上最大的海洋是？',
+    options: ['大西洋', '印度洋', '太平洋', '北冰洋'],
+    answer: 2,
+    explanation: '太平洋面积约1.65亿平方公里，占地球表面积的三分之一。'
+  },
+  {
+    id: 7,
+    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&h=300&fit=crop',
+    question: '地球上最长的河流是？',
+    options: ['长江', '亚马逊河', '尼罗河', '密西西比河'],
+    answer: 2,
+    explanation: '尼罗河全长约6650公里，流经非洲11个国家，是世界上最长的河流。'
+  }
+];
+
+function updateScoreDisplay(scoresData) {
+  const scores = scoresData || { you: 0, ta: 0 };
+  document.getElementById('scoreYou').textContent = scores.you;
+  document.getElementById('scoreTa').textContent = scores.ta;
+  
+  const today = new Date().toDateString();
+  const day = Math.floor((new Date() - new Date('2018-04-08')) / (1000*60*60*24)) + 1;
+  document.getElementById('quizDayTitle').textContent = `第${day}天 · 知识挑战`;
+  
+  // Check if answered today (this would need to be stored in Firebase too)
+  const badge = document.getElementById('quizBadge');
+  // For simplicity, we'll just show "今日未答" - in a real app, you'd store quiz state in Firebase
+  badge.textContent = '今日未答';
+  badge.style.background = 'linear-gradient(135deg,#ffc048,#ff8e53)';
+}
+
+function startDailyQuiz() {
+  const today = new Date().toDateString();
+  const day = Math.floor((new Date() - new Date('2018-04-08')) / (1000*60*60*24));
+  const quiz = quizQuestions[day % quizQuestions.length];
+  
+  document.getElementById('quizIcon').textContent = '🧠';
+  document.getElementById('quizTitle').textContent = '今日竞猜';
+  document.getElementById('quizImage').src = quiz.image;
+  document.getElementById('quizQuestion').textContent = quiz.question;
+  
+  const optionsHtml = quiz.options.map((opt, idx) => 
+    `<button class="quiz-option" onclick="selectQuizOption(${idx})">${String.fromCharCode(65+idx)}. ${opt}</button>`
+  ).join('');
+  
+  document.getElementById('quizOptions').innerHTML = optionsHtml;
+  document.getElementById('quizActions').style.display = 'block';
+  document.getElementById('quizResult').style.display = 'none';
+  
+  quizSelectedOption = null;
+  quizStartTime = Date.now();
+  
+  let timeLeft = 30;
+  document.getElementById('quizTimer').textContent = timeLeft;
+  document.getElementById('quizTimer').className = 'quiz-timer';
+  
+  if (quizTimer) clearInterval(quizTimer);
+  quizTimer = setInterval(() => {
+    timeLeft--;
+    document.getElementById('quizTimer').textContent = timeLeft;
+    if (timeLeft <= 10) {
+      document.getElementById('quizTimer').className = 'quiz-timer urgent';
+    }
+    if (timeLeft <= 0) {
+      clearInterval(quizTimer);
+      submitQuizAnswer();
+    }
+  }, 1000);
+  
+  document.getElementById('quizPopup').classList.add('show');
+}
+
+function selectQuizOption(idx) {
+  document.querySelectorAll('.quiz-option').forEach((opt, i) => {
+    opt.classList.remove('selected');
+    if (i === idx) opt.classList.add('selected');
+  });
+  quizSelectedOption = idx;
+}
+
+function submitQuizAnswer() {
+  if (quizSelectedOption === null) {
+    alert('请先选择一个答案！');
+    return;
+  }
+  
+  clearInterval(quizTimer);
+  
+  const today = new Date().toDateString();
+  const day = Math.floor((new Date() - new Date('2018-04-08')) / (1000*60*60*24));
+  const quiz = quizQuestions[day % quizQuestions.length];
+  
+  const isCorrect = quizSelectedOption === quiz.answer;
+  const timeUsed = Math.floor((Date.now() - quizStartTime) / 1000);
+  
+  document.querySelectorAll('.quiz-option').forEach((opt, idx) => {
+    opt.classList.remove('selected');
+    if (idx === quiz.answer) opt.classList.add('correct');
+    if (idx === quizSelectedOption && idx !== quiz.answer) opt.classList.add('wrong');
+  });
+  
+  document.getElementById('quizAnswer').textContent = 
+    `正确答案：${String.fromCharCode(65+quiz.answer)}. ${quiz.options[quiz.answer]}`;
+  document.getElementById('quizExplanation').textContent = `解析：${quiz.explanation}`;
+  
+  document.getElementById('quizActions').style.display = 'none';
+  document.getElementById('quizResult').style.display = 'block';
+  
+  if (isCorrect) {
+    // Update scores in Firebase
+    database.ref('scores').once('value').then(snapshot => {
+      const scores = snapshot.val() || { you: 0, ta: 0 };
+      scores[isYou ? 'you' : 'ta'] += 1;
+      database.ref('scores').set(scores);
+      triggerEasterEgg();
+    });
+  }
+}
+
+function closeQuiz() {
+  document.getElementById('quizPopup').classList.remove('show');
+}
+
+// ==================== EASTER EGG ====================
+function triggerEasterEgg() {
+  if (Math.random() < 0.3) {
+    const eggs = ['✨', '🌟', '💫', '🎉', '🥳', '🎊', '🦄', '🐱', '🐶', '🐼', '🦊', '🐰'];
+    const egg = eggs[Math.floor(Math.random() * eggs.length)];
+    
+    const easterEgg = document.createElement('div');
+    easterEgg.className = 'easter-egg';
+    easterEgg.textContent = egg;
+    easterEgg.style.left = Math.random() * 80 + 10 + '%';
+    easterEgg.style.top = '90%';
+    easterEgg.style.fontSize = (Math.random() * 30 + 20) + 'px';
+    
+    document.body.appendChild(easterEgg);
+    
+    setTimeout(() => {
+      document.body.removeChild(easterEgg);
+    }, 3000);
+  }
+}
+
+// ==================== COMPLAINT SYSTEM ====================
+function submitComplaint() {
+  if (!isYou) return alert('只有mi鼠可以发起投诉');
+  const reason = document.getElementById('complaintReason').value.trim();
+  if (!reason) return alert('请写下生气的原因');
+  
+  const complaintId = Date.now().toString();
+  const complaintData = {
+    id: complaintId,
+    reason,
+    from: 'you',
+    to: 'ta',
+    status: 'pending',
+    time: new Date().toLocaleString('zh-CN'),
+    reply: '',
+    device: deviceId
+  };
+  
+  // Save to Firebase
+  database.ref(`complaints/${complaintId}`).set(complaintData);
+  
+  document.getElementById('complaintReason').value = '';
+  document.getElementById('complaintForm').classList.remove('show');
+}
+
+function handleComplaint(action) {
+  const popupId = document.getElementById('complaintPopup').dataset.complaintId;
+  if (!popupId) return;
+  
+  database.ref(`complaints/${popupId}`).once('value').then(snapshot => {
+    const item = snapshot.val();
+    if (item) {
+      if (action === 'done') {
+        item.status = 'done';
+        item.reply = '已改正 🙇';
+      } else {
+        item.status = 'pending';
+      }
+      database.ref(`complaints/${popupId}`).set(item);
+    }
+  });
+  
+  document.getElementById('complaintPopup').classList.remove('show');
+}
+
+function rejectComplaint(id) {
+  if (!isYou) return;
+  database.ref(`complaints/${id}`).once('value').then(snapshot => {
+    const item = snapshot.val();
+    if (item) { 
+      item.status = 'rejected'; 
+      item.reply = '不满意，重新处理！'; 
+      database.ref(`complaints/${id}`).set(item);
+    }
+  });
+}
+
+function handleComplaintDirect(id, action) {
+  if (!isYou && action === 'done') {
+    database.ref(`complaints/${id}`).once('value').then(snapshot => {
+      const item = snapshot.val();
+      if (item) { 
+        item.status = action; 
+        item.reply = '已改正 🙇'; 
+        database.ref(`complaints/${id}`).set(item);
+      }
+    });
+  }
+}
+
+function renderComplaints(complaintsData) {
+  const list = objectToArray(complaintsData);
+  const container = document.getElementById('complaintList');
+  const badge = document.getElementById('complaintBadge');
+  const hint = document.getElementById('complaintHint');
+
+  if (isYou) {
+    hint.textContent = '只有mi鼠可以发起投诉，纯猪蛋只能处理';
+    const pendingForTa = list.filter(c => c.to === 'ta' && c.status === 'pending');
+    badge.textContent = pendingForTa.length;
+    badge.style.display = pendingForTa.length > 0 ? 'inline-block' : 'none';
+  } else {
+    hint.textContent = '纯猪蛋只能处理投诉，不能发起';
+    document.getElementById('btnAddComplaint').style.display = 'none';
+    const pendingForMe = list.filter(c => c.to === 'ta' && c.status === 'pending');
+    badge.textContent = pendingForMe.length;
+    badge.style.display = pendingForMe.length > 0 ? 'inline-block' : 'none';
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">暂无投诉记录，岁月静好~</div>';
+    return;
+  }
+
+  container.innerHTML = list.slice().reverse().map(c => {
+    const statusMap = { pending: ['处理中', 'status-pending'], done: ['已处理', 'status-done'], rejected: ['已打回', 'status-rejected'] };
+    const [stLabel, stClass] = statusMap[c.status] || ['未知', ''];
+    const isFromYou = c.from === 'you';
+
+    let actions = '';
+    if (!isYou && c.status === 'pending') {
+      actions = `<div class="complaint-actions">
+        <button class="btn btn-green" onclick="handleComplaintDirect('${c.id}','done')">我错了，已改正</button>
+      </div>`;
+    }
+    if (isYou && isFromYou && c.status === 'done') {
+      actions = `<div class="complaint-actions">
+        <button class="btn btn-orange" onclick="rejectComplaint('${c.id}')">不满意，打回重做</button>
+      </div>`;
+    }
+    if (c.reply) {
+      actions += `<div style="font-size:12px;color:#888;margin-top:4px;">回复：${c.reply}</div>`;
+    }
+
+    return `<div class="complaint-item">
+      <div class="complaint-reason">${c.reason}</div>
+      <div class="complaint-meta">
+        ${c.time} · ${isFromYou ? 'mi鼠 → 纯猪蛋' : '纯猪蛋 → mi鼠'}
+        <span class="complaint-status ${stClass}">${stLabel}</span>
+      </div>
+      ${actions}
+    </div>`;
+  }).join('');
+}
+
+function toggleComplaintForm() {
+  if (!isYou) return alert('只有mi鼠可以发起投诉');
+  document.getElementById('complaintForm').classList.toggle('show');
+}
+
+function checkPendingComplaints(complaintsData) {
+  if (!isYou) {
+    const list = objectToArray(complaintsData);
+    const pending = list.filter(c => c.to === 'ta' && c.status === 'pending');
+    if (pending.length > 0) {
+      const latest = pending[pending.length - 1];
+      document.getElementById('popupReason').textContent = latest.reason;
+      document.getElementById('complaintPopup').dataset.complaintId = latest.id;
+      document.getElementById('complaintPopup').classList.add('show');
+    }
+  }
+}
+
+// ==================== MEMORY PHOTO WALL ====================
+function uploadPhoto() {
+  const url = document.getElementById('photoUrl').value.trim();
+  const date = document.getElementById('photoDate').value.trim() || new Date().toLocaleDateString('zh-CN');
+  if (!url) return alert('请粘贴图片链接');
+  if (!url.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)) {
+    if (!confirm('链接可能不是图片格式，继续添加吗？')) return;
+  }
+  
+  const photoId = Date.now().toString();
+  const photoData = { 
+    id: photoId, 
+    url, 
+    date, 
+    added: new Date().toLocaleString('zh-CN') 
+  };
+  
+  // Save to Firebase
+  database.ref(`photos/${photoId}`).set(photoData);
+  
+  document.getElementById('photoUrl').value = '';
+  document.getElementById('photoDate').value = '';
+  document.getElementById('memoryUpload').classList.remove('show');
+}
+
+function renderPhotos(photosData) {
+  const photos = objectToArray(photosData);
+  const wall = document.getElementById('memoryWall');
+  const today = document.getElementById('memoryToday');
+
+  if (photos.length > 0) {
+    const todayStr = new Date().toDateString();
+    const seed = todayStr.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    const idx = seed % photos.length;
+    const photo = photos[idx];
+    today.innerHTML = `
+      <div class="memory-today">
+        <div>今日回忆 · ${photo.date}</div>
+        <img src="${photo.url}" alt="今日回忆" class="today-photo" onerror="this.style.display='none'">
+      </div>
+    `;
+  } else {
+    today.innerHTML = '<div class="memory-today">还没有照片，上传第一张回忆吧 📸</div>';
+  }
+
+  wall.innerHTML = photos.slice(-6).map(p => `
+    <div class="memory-photo-item" onclick="showPhoto('${p.url}')">
+      <img src="${p.url}" alt="${p.date}" onerror="this.style.display='none'">
+      <div class="photo-date">${p.date}</div>
+    </div>
+  `).join('');
+}
+
+function showPhoto(url) {
+  window.open(url, '_blank');
+}
+
+function toggleMemoryUpload() {
+  document.getElementById('memoryUpload').classList.toggle('show');
+}
+
+// ==================== TO-DO LIST (AI Enhanced) ====================
+const typeIcons = { play:'🎮', eat:'🍜', go:'✈️', watch:'🎬', buy:'🛍️' };
+const typeNames = { play:'想玩', eat:'想吃', go:'想去', watch:'想看', buy:'想买' };
+
+async function addTodo() {
+  const title = document.getElementById('todoTitle').value.trim();
+  const type = document.getElementById('todoType').value;
+  const notes = document.getElementById('todoNotes').value.trim();
+  if (!title) return alert('请填写内容');
+  
+  const todoId = Date.now().toString();
+  const todoData = {
+    id: todoId,
+    title,
+    type,
+    notes,
+    added: new Date().toLocaleString('zh-CN'),
+    aiInfo: null,
+    aiLoading: true
+  };
+  
+  // Save to Firebase
+  database.ref(`todos/${todoId}`).set(todoData);
+  
+  document.getElementById('todoTitle').value = '';
+  document.getElementById('todoNotes').value = '';
+  document.getElementById('todoForm').classList.remove('show');
+  
+  // Simulate AI processing
+  setTimeout(() => fetchAIInfo(todoId, title, type), 500);
+}
+
+async function fetchAIInfo(id, title, type) {
+  const mockResponses = {
+    play: `推荐指数：★★★★☆\n适合情侣一起玩，操作简单有趣。建议游玩时间2-3小时，可以增进默契。`,
+    eat: `推荐指数：★★★★★\n这家餐厅在情侣中口碑很好，环境浪漫，人均¥150左右。招牌菜是黑椒牛柳和提拉米苏。`,
+    go: `推荐指数：★★★★☆\n风景优美，适合拍照打卡。最佳季节是春秋季，建议游玩2天1夜。附近有特色民宿。`,
+    watch: `推荐指数：★★★☆☆\nIMDb评分7.5，爱情片，结局温馨。片长120分钟，适合周末晚上一起看。`,
+    buy: `推荐指数：★★★★☆\n性价比高，实用性强。建议等促销时购买，可以节省30%左右。`
+  };
+  const mockTips = {
+    play: '记得提前预约，周末人比较多。',
+    eat: '可以提前打电话订窗边位置。',
+    go: '避开节假日高峰期，体验更好。',
+    watch: '准备点零食饮料，氛围更佳。',
+    buy: '对比几个平台价格再下单。'
+  };
+  
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  const aiInfo = {
+    rating: '★★★★☆',
+    summary: mockResponses[type] || '暂无AI推荐信息',
+    tip: mockTips[type] || '暂无小贴士',
+    source: 'AI推荐'
+  };
+  
+  // Update in Firebase
+  database.ref(`todos/${id}`).once('value').then(snapshot => {
+    const todo = snapshot.val();
+    if (todo) {
+      todo.aiLoading = false;
+      todo.aiInfo = aiInfo;
+      database.ref(`todos/${id}`).set(todo);
+    }
+  });
+}
+
+function renderTodos(todosData) {
+  const todos = objectToArray(todosData);
+  const container = document.getElementById('todoList');
+  const badge = document.getElementById('todoBadge');
+  
+  badge.textContent = todos.length;
+  badge.style.display = todos.length > 0 ? 'inline-block' : 'none';
+
+  if (todos.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没添加心愿，记录想一起做的事吧~</div>';
+    return;
+  }
+
+  container.innerHTML = todos.slice().reverse().map(t => {
+    const aiContent = t.aiLoading 
+      ? '<div class="todo-ai ai-loading">🔍 AI正在搜索推荐信息...</div>'
+      : t.aiInfo 
+        ? `<div class="todo-ai">
+            <div class="ai-title">${t.aiInfo.source} ${t.aiInfo.rating}</div>
+            <div>${t.aiInfo.summary}</div>
+            <div style="margin-top:4px;color:#888;font-size:11px">💡 ${t.aiInfo.tip}</div>
+          </div>`
+        : '';
+    
+    return `<div class="todo-item">
+      <div class="todo-title">${typeIcons[t.type]} ${t.title}</div>
+      <span class="todo-type">${typeNames[t.type]}</span>
+      <div class="todo-meta">${t.added}${t.notes ? ' · ' + t.notes : ''}</div>
+      ${aiContent}
+    </div>`;
+  }).join('');
+}
+
+function toggleTodoForm() {
+  document.getElementById('todoForm').classList.toggle('show');
+}
+
+// ==================== GAME INVITATION ====================
+function toggleGameForm() {
+  document.getElementById('gameForm').classList.toggle('show');
+}
+
+function submitGameInvite() {
+  const gameName = document.getElementById('gameName').value;
+  const gameTime = document.getElementById('gameTime').value.trim();
+  const note = document.getElementById('gameNote').value.trim();
+  if (!gameTime) return alert('请填写邀约时间');
+  
+  const gameId = Date.now().toString();
+  const gameData = {
+    id: gameId,
+    gameName,
+    gameTime,
+    note: note || '',
+    from: 'you',
+    status: 'pending',
+    time: new Date().toLocaleString('zh-CN')
+  };
+  
+  // Save to Firebase
+  database.ref(`games/${gameId}`).set(gameData);
+  
+  document.getElementById('gameTime').value = '';
+  document.getElementById('gameNote').value = '';
+  document.getElementById('gameForm').classList.remove('show');
+}
+
+function handleGame(id, action) {
+  database.ref(`games/${id}`).once('value').then(snapshot => {
+    const item = snapshot.val();
+    if (item) {
+      item.status = action;
+      database.ref(`games/${id}`).set(item);
+    }
+  });
+}
+
+function renderGames(gamesData) {
+  const list = objectToArray(gamesData);
+  const container = document.getElementById('gameList');
+  const badge = document.getElementById('gameBadge');
+
+  const pendingCount = list.filter(g => g.status === 'pending').length;
+  badge.textContent = pendingCount;
+  badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">暂无游戏邀约，发起一局吧~</div>';
+    return;
+  }
+
+  container.innerHTML = list.slice().reverse().map(g => {
+    const fromYou = g.from === 'you';
+    const fromLabel = fromYou ? 'mi鼠' : '纯猪蛋';
+    const statusMap = { pending: '待确认', accepted: '已接受', rejected: '已拒绝' };
+    const statusClass = g.status;
+    const canAct = !isYou && g.status === 'pending';
+
+    return `<div class="game-item ${g.status}">
+      <div class="game-from">${fromLabel} · ${g.time}</div>
+      <div class="game-header">
+        <span class="game-name">🎮 ${g.gameName}</span>
+        <span class="game-status ${statusClass}">${statusMap[g.status]}</span>
+      </div>
+      <div class="game-info">
+        <div>⏰ 时间：${g.gameTime}</div>
+        ${g.note ? '<div>💬 ' + g.note + '</div>' : ''}
+      </div>
+      ${canAct ? `<div class="game-actions">
+        <button class="btn-accept" onclick="handleGame('${g.id}','accepted')">✅ 接受</button>
+        <button class="btn-reject" onclick="handleGame('${g.id}','rejected')">❌ 拒绝</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ==================== INIT ====================
+function initRoleUI() {
+  if (isYou) {
+    document.getElementById('roleInfo').textContent = '🐭 mi鼠的页面';
+    document.getElementById('roleTag').textContent = '投诉权限：mi鼠';
+  } else {
+    document.getElementById('roleInfo').textContent = '🐷 纯猪蛋的页面';
+    document.getElementById('roleTag').textContent = '处理权限：纯猪蛋';
+    document.getElementById('btnAddComplaint').style.display = 'none';
+  }
+}
+
+// ==================== START ====================
+checkMeetingDay();
+initRoleUI();
+renderHoroscope();
+
+// Setup Firebase listeners
+setupFirebaseListeners();
+
+// Update day count
+const startDate = new Date('2018-04-08');
+const today = new Date();
+const dayCount = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+document.getElementById('dayCount').textContent = dayCount;
+
+// Preload some example photos if empty
+database.ref('photos').once('value').then(snapshot => {
+  if (!snapshot.val() || Object.keys(snapshot.val()).length === 0) {
+    const examplePhotos = [
+      { id: '1', url: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=400&h=300&fit=crop', date: '第一次约会', added: new Date().toLocaleString('zh-CN') },
+      { id: '2', url: 'https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?w=400&h=300&fit=crop', date: '海边旅行', added: new Date().toLocaleString('zh-CN') },
+      { id: '3', url: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=300&fit=crop', date: '生日惊喜', added: new Date().toLocaleString('zh-CN') }
+    ];
+    
+    examplePhotos.forEach(photo => {
+      database.ref(`photos/${photo.id}`).set(photo);
+    });
+  }
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', cleanupFirebaseListeners);
+</script>
+</body>
+</html>
