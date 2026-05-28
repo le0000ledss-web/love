@@ -199,17 +199,6 @@
     .quiz-explanation { font-size:13px; color:#666; line-height:1.5; }
 
     /* Memory */
-    .memory-wall { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
-    .memory-photo-item { position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; cursor:pointer; }
-    .memory-photo-item img { width:100%; height:100%; object-fit:cover; }
-    .memory-photo-item .photo-date { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; padding:4px; text-align:center; }
-    .memory-photo-item .photo-delete-btn {
-      position:absolute; top:4px; right:4px; background:rgba(255,71,87,0.85); color:#fff;
-      border:none; border-radius:50%; width:22px; height:22px; font-size:14px;
-      line-height:22px; text-align:center; cursor:pointer; z-index:10;
-      display:flex; align-items:center; justify-content:center; transition:all 0.2s;
-    }
-    .memory-photo-item .photo-delete-btn:hover { background:#ff4757; transform:scale(1.1); }
     .memory-today { background:linear-gradient(135deg,#fff5f7,#fff0e6); border-radius:12px; padding:16px; text-align:center; margin-bottom:12px; }
     .memory-today .today-photo { width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:8px; }
 
@@ -486,11 +475,8 @@
       <span class="icon">🍂</span>北风毫不留情，把叶子吹落
       <span id="photoBadge" class="badge" style="display:none">0</span>
     </div>
-    <div class="section-hint">我们的回忆，由后端统一管理</div>
+    <div class="section-hint">每天一张，由命运挑选</div>
     <div id="memoryToday" class="memory-today">加载中...</div>
-    <div id="memoryWall" class="memory-wall"></div>
-    
-    
   </div>
 
   <!-- To-Do List (AI Enhanced) -->
@@ -1491,7 +1477,6 @@ function checkPendingComplaints(complaintsData) {
 
 async function loadPhotos() {
   const today = document.getElementById('memoryToday');
-  const wall = document.getElementById('memoryWall');
   today.innerHTML = '<div class="memory-today">加载中...</div>';
 
   try {
@@ -1506,44 +1491,44 @@ async function loadPhotos() {
 }
 
 function renderPhotos(photos) {
-  const wall = document.getElementById('memoryWall');
   const today = document.getElementById('memoryToday');
 
-  if (photos.length > 0) {
-    const todayStr = new Date().toDateString();
-    const seed = todayStr.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-    const idx = seed % photos.length;
-    const photo = photos[idx];
-    const dateStr = photo.date || photo.lastModified?.slice(0, 10) || '';
-    today.innerHTML = `
-      <div class="memory-today">
-        <div>今日回忆 · ${dateStr}</div>
-        <img src="${photo.url}" alt="今日回忆" class="today-photo" onerror="this.style.display='none'">
-        <div id="commentSection_${photo.id}" class="photo-comment-section">
-          <div class="comment-list" id="commentList_${photo.id}"></div>
-        </div>
-      </div>
-    `;
-    setTimeout(() => renderComments(photo.id), 100);
-  } else {
+  if (!photos.length) {
     today.innerHTML = '<div class="memory-today">还没有照片，去 COS 上传吧 📸</div>';
+    return;
   }
 
-  wall.innerHTML = photos.slice(0, 6).map(p => {
-    const escapeUrl = p.url.replace(/'/g, "\\'");
-    const dateStr = p.date || p.lastModified?.slice(0, 10) || '';
-    return `
-    <div class="memory-photo-item" onclick="showPhoto('${escapeUrl}')">
-      <img src="${p.url}" alt="${dateStr}" onerror="this.style.display='none'">
-      <div class="photo-date">${dateStr}</div>
+  // Stable per-photo ID derived from key (Vercel side may return colliding ids)
+  photos.forEach(p => {
+    p.id = stablePhotoId(p.key || p.url || '');
+  });
+  // Sort by lastModified ascending so the daily index is stable across uploads of older order
+  photos.sort((a, b) => (a.lastModified || '').localeCompare(b.lastModified || ''));
+
+  const todayStr = new Date().toDateString();
+  const seed = todayStr.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const idx = seed % photos.length;
+  const photo = photos[idx];
+  const dateStr = photo.date || photo.lastModified?.slice(0, 10) || '';
+  today.innerHTML = `
+    <div class="memory-today">
+      <div>今日回忆 · ${dateStr}</div>
+      <img src="${photo.url}" alt="今日回忆" class="today-photo" onerror="this.style.display='none'">
+      <div id="commentSection_${photo.id}" class="photo-comment-section">
+        <div class="comment-list" id="commentList_${photo.id}"></div>
+      </div>
     </div>
-  `}).join('');
+  `;
+  setTimeout(() => renderComments(photo.id), 100);
 }
 
-function showPhoto(url) { window.open(url, '_blank'); }
+function stablePhotoId(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return 'p' + (h >>> 0).toString(36);
+}
 
-// ==================== PHOTO COMMENTS ====================
-function addComment(photoId) {
+function stablePhotoId(s) {
   requireAuth();
   const input = document.getElementById('commentInput_' + photoId);
   const text = input.value.trim();
@@ -1570,11 +1555,24 @@ function renderComments(photoId) {
   const sectionEl = document.getElementById('commentSection_' + photoId);
   if (!listEl || !sectionEl) return;
 
-  database.ref(getDataPath(`photo_comments/${photoId}`)).once('value').then(snapshot => {
+  // Mount input immediately so the user always sees the comment box,
+  // independent of whether the data fetch returns / Firebase is reachable.
+  if (!document.getElementById('commentInput_' + photoId)) {
+    const inputArea = document.createElement('div');
+    inputArea.className = 'comment-input-area';
+    inputArea.innerHTML = `
+      <input type="text" id="commentInput_${photoId}" class="comment-input" placeholder="写下评论...">
+      <button class="btn btn-outline-sm comment-submit-btn" onclick="addComment('${photoId}')">发送</button>
+    `;
+    sectionEl.appendChild(inputArea);
+  }
+
+  const ref = database.ref(getDataPath(`photo_comments/${photoId}`));
+  ref.off();
+  ref.on('value', snapshot => {
     const comments = objectToArray(snapshot.val());
     comments.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-    const commentsHtml = comments.length > 0
+    listEl.innerHTML = comments.length > 0
       ? comments.map(c => {
           const who = c.from === 'you' ? 'mi鼠' : '纯猪蛋';
           return `<div class="comment-item">
@@ -1584,19 +1582,6 @@ function renderComments(photoId) {
           </div>`;
         }).join('')
       : '<div class="comment-empty">还没有评论，来说点什么吧~</div>';
-
-    listEl.innerHTML = commentsHtml;
-
-    // Add input area if not already present
-    if (!document.getElementById('commentInput_' + photoId)) {
-      const inputArea = document.createElement('div');
-      inputArea.className = 'comment-input-area';
-      inputArea.innerHTML = `
-        <input type="text" id="commentInput_${photoId}" class="comment-input" placeholder="写下评论...">
-        <button class="btn btn-outline-sm comment-submit-btn" onclick="addComment('${photoId}')">发送</button>
-      `;
-      sectionEl.appendChild(inputArea);
-    }
   });
 }
 
