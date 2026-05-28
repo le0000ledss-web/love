@@ -1528,7 +1528,7 @@ function stablePhotoId(s) {
   return 'p' + (h >>> 0).toString(36);
 }
 
-function stablePhotoId(s) {
+function addComment(photoId) {
   requireAuth();
   const input = document.getElementById('commentInput_' + photoId);
   const text = input.value.trim();
