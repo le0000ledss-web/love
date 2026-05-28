@@ -514,6 +514,14 @@ function updateFirebaseStatus(connected) {
   const statusEl = document.querySelector('.firebase-status');
   statusEl.textContent = connected ? '数据库已连接' : '数据库连接断开';
   statusEl.className = `firebase-status ${connected ? 'connected' : 'disconnected'}`;
+  console.log('Firebase connection status:', connected);
+}
+
+function logFirebaseError(error) {
+  console.error('Firebase error:', error.code, error.message);
+  const statusEl = document.querySelector('.firebase-status');
+  statusEl.textContent = `数据库错误: ${error.code}`;
+  statusEl.className = 'firebase-status disconnected';
 }
 
 function setupFirebaseListeners() {
@@ -521,6 +529,8 @@ function setupFirebaseListeners() {
   const connectedRef = database.ref('.info/connected');
   connectedRef.on('value', (snap) => {
     updateFirebaseStatus(snap.val() === true);
+  }, (error) => {
+    logFirebaseError(error);
   });
 
   // Listen for mood changes
