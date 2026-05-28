@@ -228,6 +228,10 @@
     /* Todo */
     .todo-item { background:#f8f9fa; border-radius:12px; padding:14px; margin-bottom:10px; }
     .todo-item .todo-title { font-size:14px; font-weight:600; color:#333; margin-bottom:4px; }
+    .todo-item .todo-title.completed { text-decoration:line-through; color:#999; }
+    .todo-item .todo-check { width:20px; height:20px; border:2px solid #ddd; border-radius:50%; cursor:pointer; }
+    .todo-item .todo-check.checked { background:var(--green); border-color:var(--green); position:relative; }
+    .todo-item .todo-check.checked::after { content:'✓'; color:#fff; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12px; }
     .todo-item .todo-type { display:inline-block; background:#e9ecef; color:#6c757d; padding:2px 8px; border-radius:8px; font-size:10px; margin-left:8px; }
     .todo-item .todo-meta { font-size:11px; color:#888; margin-bottom:6px; }
     .todo-item .todo-ai { background:#fff; border-left:3px solid #ff6b9d; border-radius:8px; padding:10px; font-size:12px; color:#555; line-height:1.5; }
@@ -377,8 +381,11 @@
   <!-- Question -->
   <div class="section">
     <div class="section-title"><span class="icon">💬</span>爱情对你来说，只是一个话题</div>
+    <div class="section-hint">每天一个话题，留下你们的回答</div>
     <div class="question-card" id="questionCard">加载中...</div>
-    <button class="btn-outline" onclick="randomQuestion()" style="margin-top:12px;width:100%;">换一个问题</button>
+    <div id="topicCommentSection" class="photo-comment-section" style="margin-top:14px;">
+      <div class="comment-list" id="topicCommentList"></div>
+    </div>
   </div>
 
   <!-- Note -->
@@ -1160,9 +1167,71 @@ const questions = [
   '你幻想过和我一起度过的最完美的一天是什么样的？','你最近有没有刷到什么好笑的想要分享给我？',
 ];
 function randomQuestion() {
+  // Daily question — same for both users on the same calendar day,
+  // so the comment thread under it is shared and stable.
   const card = document.getElementById('questionCard');
-  card.style.opacity='0';
-  setTimeout(()=>{ card.textContent=questions[Math.floor(Math.random()*questions.length)]; card.style.opacity='1'; },200);
+  const today = new Date();
+  const dateKey = today.getFullYear() + '-' + (today.getMonth()+1) + '-' + today.getDate();
+  const seed = dateKey.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const idx = seed % questions.length;
+  card.style.opacity = '0';
+  setTimeout(() => { card.textContent = questions[idx]; card.style.opacity = '1'; }, 200);
+  // Wire up the daily comment thread under this topic.
+  renderTopicComments(dateKey);
+}
+
+function renderTopicComments(dateKey) {
+  const listEl = document.getElementById('topicCommentList');
+  const sectionEl = document.getElementById('topicCommentSection');
+  if (!listEl || !sectionEl) return;
+
+  // Replace any prior input (a previous day might have left one mounted)
+  const oldInput = sectionEl.querySelector('.comment-input-area');
+  if (oldInput) oldInput.remove();
+  const inputArea = document.createElement('div');
+  inputArea.className = 'comment-input-area';
+  inputArea.innerHTML = `
+    <input type="text" id="topicCommentInput_${dateKey}" class="comment-input" placeholder="写下你的回答...">
+    <button class="btn btn-outline-sm comment-submit-btn" onclick="addTopicComment('${dateKey}')">发送</button>
+  `;
+  sectionEl.appendChild(inputArea);
+
+  const ref = database.ref(getDataPath(`topic_comments/${dateKey}`));
+  ref.off();
+  ref.on('value', snapshot => {
+    const comments = objectToArray(snapshot.val());
+    comments.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    listEl.innerHTML = comments.length > 0
+      ? comments.map(c => {
+          const who = c.from === 'you' ? 'mi鼠' : '纯猪蛋';
+          return `<div class="comment-item">
+            <span class="comment-who">${c.emoji || ''} ${who}</span>
+            <span class="comment-text">${c.text}</span>
+            <span class="comment-time">${c.time}</span>
+          </div>`;
+        }).join('')
+      : '<div class="comment-empty">还没有回答，先写一个吧~</div>';
+  });
+}
+
+function addTopicComment(dateKey) {
+  requireAuth();
+  const input = document.getElementById('topicCommentInput_' + dateKey);
+  const text = input.value.trim();
+  if (!text) return;
+  const commentId = Date.now().toString();
+  const data = {
+    id: commentId,
+    text,
+    from: isYou ? 'you' : 'ta',
+    username: currentUser.username,
+    displayName: currentUser.displayName,
+    emoji: currentUser.emoji,
+    time: new Date().toLocaleString('zh-CN'),
+    timestamp: Date.now()
+  };
+  database.ref(getDataPath(`topic_comments/${dateKey}/${commentId}`)).set(data);
+  input.value = '';
 }
 
 // ==================== NOTE ====================
@@ -1209,21 +1278,22 @@ function renderShares(sharesData) {
   const container = document.getElementById('shareList');
   const badge = document.getElementById('shareBadge');
 
-  const todayShares = shares.filter(s => s.date === new Date().toDateString());
+  const today = new Date().toDateString();
+  const todayShares = shares.filter(s => s.date === today);
   badge.textContent = todayShares.length;
   badge.style.display = todayShares.length > 0 ? 'inline-block' : 'none';
 
-  if (shares.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没有分享记录，写下今天的日常吧~</div>';
+  if (todayShares.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没有今天的分享，写下今天的日常吧~</div>';
     return;
   }
 
-  container.innerHTML = shares.slice().reverse().map(s => {
-    const who = s.from === 'you' ? 'mi鼠' : '纯猪蛋';
+  container.innerHTML = todayShares.slice().reverse().map(s => {
+    const fromLabel = s.from === 'you' ? 'mi鼠' : '纯猪蛋';
     return `<div class="share-item">
       <div class="share-content">${s.content}</div>
       <div class="share-meta">
-        <span>${who} · ${s.time}</span>
+        <span>${fromLabel} · ${s.time}</span>
         <span class="share-tag">${s.typeName}</span>
       </div>
     </div>`;
@@ -1722,6 +1792,9 @@ async function addTodo() {
     id: todoId, title, type, notes,
     username: currentUser.username,
     added: new Date().toLocaleString('zh-CN'),
+    addedDate: new Date().toDateString(),
+    completed: false,
+    completedDate: null,
     aiInfo: null, aiLoading: true
   };
 
@@ -1764,12 +1837,17 @@ async function fetchAIInfo(id, title, type) {
 }
 
 function renderTodos(todosData) {
-  const todos = objectToArray(todosData);
+  const all = objectToArray(todosData);
+  const today = new Date().toDateString();
+  // Hide items that were completed on a previous day. Items with no `completed` field
+  // (legacy data) are treated as not completed and remain visible.
+  const todos = all.filter(t => !t.completed || t.completedDate === today);
   const container = document.getElementById('todoList');
   const badge = document.getElementById('todoBadge');
 
-  badge.textContent = todos.length;
-  badge.style.display = todos.length > 0 ? 'inline-block' : 'none';
+  const openCount = todos.filter(t => !t.completed).length;
+  badge.textContent = openCount;
+  badge.style.display = openCount > 0 ? 'inline-block' : 'none';
 
   if (todos.length === 0) {
     container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">还没添加心愿，记录想一起做的事吧~</div>';
@@ -1787,12 +1865,33 @@ function renderTodos(todosData) {
           </div>`
         : '';
 
+    const checked = t.completed ? 'checked' : '';
+    const titleClass = t.completed ? 'completed' : '';
     return `<div class="todo-item">
-      <div class="todo-title">${typeIcons[t.type]} ${t.title}</div>
-      <span class="todo-type">${typeNames[t.type]}</span>
-      <div class="todo-meta">${t.added}${t.notes ? ' · ' + t.notes : ''}</div>
-      ${aiContent}
+      <div class="todo-header" style="display:flex;align-items:flex-start;gap:10px;">
+        <div class="todo-check ${checked}" onclick="toggleTodoDone('${t.id}')" style="margin-top:2px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="todo-title ${titleClass}">${typeIcons[t.type]} ${t.title}</div>
+          <span class="todo-type">${typeNames[t.type]}</span>
+          <div class="todo-meta">${t.added}${t.notes ? ' · ' + t.notes : ''}</div>
+          ${aiContent}
+        </div>
+      </div>
     </div>`;
+  }).join('');
+}
+
+function toggleTodoDone(id) {
+  requireAuth();
+  database.ref(getDataPath(`todos/${id}`)).once('value').then(snapshot => {
+    const todo = snapshot.val();
+    if (!todo) return;
+    const nowCompleted = !todo.completed;
+    todo.completed = nowCompleted;
+    todo.completedDate = nowCompleted ? new Date().toDateString() : null;
+    database.ref(getDataPath(`todos/${id}`)).set(todo);
+  });
+}
   }).join('');
 }
 
@@ -1813,7 +1912,8 @@ function submitGameInvite() {
     id: gameId, gameName, gameTime, note: note || '',
     from: 'you', status: 'pending',
     username: currentUser.username,
-    time: new Date().toLocaleString('zh-CN')
+    time: new Date().toLocaleString('zh-CN'),
+    date: new Date().toDateString()
   };
 
   database.ref(getDataPath(`games/${gameId}`)).set(gameData);
@@ -1832,7 +1932,11 @@ function handleGame(id, action) {
 }
 
 function renderGames(gamesData) {
-  const list = objectToArray(gamesData);
+  const all = objectToArray(gamesData);
+  const today = new Date().toDateString();
+  // Show only today's invitations; older ones stay in Firebase but are hidden.
+  // Treat legacy invitations without `date` as "today" so they don't disappear instantly after this update.
+  const list = all.filter(g => !g.date || g.date === today);
   const container = document.getElementById('gameList');
   const badge = document.getElementById('gameBadge');
 
@@ -1841,7 +1945,7 @@ function renderGames(gamesData) {
   badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
 
   if (list.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">暂无游戏邀约，发起一局吧~</div>';
+    container.innerHTML = '<div style="text-align:center;color:#ccc;padding:16px;font-size:13px">今天还没有邀约，发起一局吧~</div>';
     return;
   }
 
