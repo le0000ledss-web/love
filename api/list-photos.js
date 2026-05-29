@@ -1,3 +1,4 @@
+// Vercel redeploy trigger: 2026-05-29
 const COS = require('cos-nodejs-sdk-v5');
 const { createHash } = require('crypto');
 
