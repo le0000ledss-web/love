@@ -1605,14 +1605,51 @@ function submitQuizAnswer() {
   document.getElementById('quizActions').style.display = 'none';
   document.getElementById('quizResult').style.display = 'block';
 
-  if (isCorrect) {
-    database.ref(getDataPath('scores')).once('value').then(snapshot => {
-      const scores = snapshot.val() || { you: 0, ta: 0 };
-      scores[isYou ? 'you' : 'ta'] += 1;
-      database.ref(getDataPath('scores')).set(scores);
-      triggerEasterEgg();
-    });
-  }
+  // Per-day, per-role attempt record. Only the FIRST attempt counts toward score.
+  const role = isYou ? 'you' : 'ta';
+  const dayKey = new Date().toDateString();
+  const attemptRef = database.ref(getDataPath(`quiz_answers/${dayKey}/${role}`));
+
+  attemptRef.once('value').then(snapshot => {
+    const prior = snapshot.val();
+    const isFirstAttempt = !prior;
+
+    if (isFirstAttempt) {
+      attemptRef.set({ first: isCorrect ? 'right' : 'wrong', tries: 1 });
+      if (isCorrect) {
+        database.ref(getDataPath('scores')).once('value').then(scoreSnap => {
+          const scores = scoreSnap.val() || { you: 0, ta: 0 };
+          scores[role] = (scores[role] || 0) + 1;
+          database.ref(getDataPath('scores')).set(scores);
+          triggerEasterEgg();
+        });
+      }
+    } else {
+      attemptRef.update({ tries: (prior.tries || 1) + 1 });
+      // Repeat attempts get taunted instead of scored.
+      const taunt = isCorrect ? mockTaunt('right') : mockTaunt('wrong');
+      setTimeout(() => alert(taunt), 200);
+    }
+  });
+}
+
+const tauntsRight = [
+  '哦~第一次答错了又来骗分？没用的，这次不算 😏',
+  '现在答对又怎样，第一次就翻车的事实改不了',
+  '聪明人不会做两次同样的事——你第一次错就错了',
+  '这题你都要答两遍才对，确定脑子没事？',
+  '事后诸葛亮的味儿太冲了 🙃'
+];
+const tauntsWrong = [
+  '答两次都错？建议查查是不是脑子掉了 🧠💨',
+  '第一次错，第二次还错，是想和这题打一辈子吗',
+  '这就是你说的"再来一次"？再来十次也是错',
+  '题：1。 你：0。 心智：负 50',
+  '建议你打开浏览器先看看自己是不是在做梦 😴'
+];
+function mockTaunt(kind) {
+  const pool = kind === 'right' ? tauntsRight : tauntsWrong;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function closeQuiz() { document.getElementById('quizPopup').classList.remove('show'); }
@@ -2089,7 +2126,7 @@ function submitGameInvite() {
   const gameId = Date.now().toString();
   const gameData = {
     id: gameId, gameName, gameTime, note: note || '',
-    from: 'you', status: 'pending',
+    from: isYou ? 'you' : 'ta', status: 'pending',
     username: currentUser.username,
     time: new Date().toLocaleString('zh-CN'),
     date: new Date().toDateString()
@@ -2135,11 +2172,13 @@ function renderGames(gamesData) {
   }
 
   container.innerHTML = list.slice().reverse().map(g => {
-    const fromYou = g.from === 'you';
-    const fromLabel = fromYou ? 'mi鼠' : '纯猪蛋';
+    const senderIsMishu = g.from === 'you';
+    const fromLabel = senderIsMishu ? 'mi鼠' : '纯猪蛋';
     const statusMap = { pending: '待确认', accepted: '已接受', rejected: '已拒绝' };
     const statusClass = g.status;
-    const canAct = currentUser && !currentUser.canComplain && g.status === 'pending';
+    // The recipient (not the sender) acts on a pending invitation.
+    const sentByMe = (isYou && senderIsMishu) || (!isYou && !senderIsMishu);
+    const canAct = currentUser && !sentByMe && g.status === 'pending';
 
     return `<div class="game-item ${g.status}">
       <div class="game-from">${fromLabel} · ${g.time}</div>
