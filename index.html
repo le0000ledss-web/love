@@ -563,6 +563,19 @@
     </div>
   </div>
 
+  <!-- Set Meeting Date Popup -->
+  <div id="meetingPopup" class="popup-overlay">
+    <div class="popup-card">
+      <div class="popup-icon">📅</div>
+      <div class="popup-title" id="meetingPopupTitle">设置下次见面日</div>
+      <div id="meetingPopupMsg" class="popup-reason" style="margin-bottom:14px;"></div>
+      <input type="date" id="meetingDateInput" style="width:100%;padding:10px;border:1.5px solid #ffb3cc;border-radius:10px;font-size:14px;outline:none;margin-bottom:14px;">
+      <div class="popup-actions">
+        <button class="btn btn-pink" onclick="submitMeetingDate()">确定</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Quiz Popup -->
   <div id="quizPopup" class="quiz-popup">
     <div class="quiz-card">
@@ -824,10 +837,9 @@ function objectToArray(obj) {
 // ==================== MEETING DAY SPLASH ====================
 function checkMeetingDay() {
   const today = new Date();
-  const target = new Date('2026-06-12T00:00:00');
-  const isMeetingDay = today.getFullYear() === target.getFullYear() &&
-                      today.getMonth() === target.getMonth() &&
-                      today.getDate() === target.getDate();
+  const isMeetingDay = today.getFullYear() === targetDate.getFullYear() &&
+                      today.getMonth() === targetDate.getMonth() &&
+                      today.getDate() === targetDate.getDate();
 
   if (!isMeetingDay) return;
 
@@ -866,7 +878,7 @@ function dismissSplash() {
 }
 
 // ==================== COUNTDOWN ====================
-const targetDate = new Date('2026-06-12T00:00:00');
+let targetDate = new Date('2026-06-12T00:00:00');  // mutable; overwritten by Firebase meta
 function updateCountdown() {
   const now = new Date();
   const diff = targetDate - now;
@@ -878,6 +890,86 @@ function updateCountdown() {
   document.getElementById('cd-hours').textContent = Math.floor((diff%(1000*60*60*24))/(1000*60*60));
   document.getElementById('cd-mins').textContent = Math.floor((diff%(1000*60*60))/(1000*60));
   document.getElementById('cd-secs').textContent = Math.floor((diff%(1000*60))/1000);
+}
+
+// ==================== MEETING DATE (dynamic, stored in Firebase) ====================
+function loadMeetingDate() {
+  database.ref(getDataPath('meta/meetingDate')).once('value').then(snapshot => {
+    const stored = snapshot.val();
+    if (!stored) {
+      // First-time setup: ask user to set the date.
+      promptMeetingDate({ firstTime: true });
+      return;
+    }
+    targetDate = new Date(stored + 'T00:00:00');
+    updateMeetingDateUI(stored);
+    updateCountdown();
+    checkMeetingDay();
+    checkPastMeeting(stored);
+  });
+}
+
+function updateMeetingDateUI(dateStr) {
+  // dateStr is "YYYY-MM-DD" — render as "YYYY年M月D日" matching the existing label style.
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const targetEl = document.querySelector('.countdown-section .target');
+  if (targetEl) targetEl.textContent = `${y}年${m}月${d}日`;
+}
+
+function checkPastMeeting(dateStr) {
+  // The meeting day itself is celebrated by the splash; only trigger reset the day after.
+  const target = new Date(dateStr + 'T00:00:00');
+  const tomorrow = new Date(target);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (new Date() < tomorrow) return;
+
+  // Compute scoreboard summary for the popup before clearing.
+  database.ref(getDataPath('scores')).once('value').then(snapshot => {
+    const scores = snapshot.val() || { you: 0, ta: 0 };
+    const youScore = scores.you || 0;
+    const taScore = scores.ta || 0;
+    let verdict;
+    if (youScore === taScore) verdict = `平局！${youScore} : ${taScore}，这顿饭谁请都行~`;
+    else if (youScore > taScore) verdict = `比分 mi鼠 ${youScore} : ${taScore} 纯猪蛋，纯猪蛋请客！`;
+    else verdict = `比分 mi鼠 ${youScore} : ${taScore} 纯猪蛋，mi鼠请客！`;
+    promptMeetingDate({ firstTime: false, verdict });
+  });
+}
+
+function promptMeetingDate({ firstTime, verdict }) {
+  const popup = document.getElementById('meetingPopup');
+  const titleEl = document.getElementById('meetingPopupTitle');
+  const msgEl = document.getElementById('meetingPopupMsg');
+  if (firstTime) {
+    titleEl.textContent = '设置见面日';
+    msgEl.textContent = '填写下次见面的日期，倒计时会基于这个日期。';
+  } else {
+    titleEl.textContent = '上次见面日已过';
+    msgEl.innerHTML = (verdict || '') + '<br>积分将清零，请填写下次见面的日期~';
+  }
+  // Default value: 30 days from now to give them something sensible to click off of.
+  const def = new Date();
+  def.setDate(def.getDate() + 30);
+  document.getElementById('meetingDateInput').value = def.toISOString().slice(0, 10);
+  popup.classList.add('show');
+}
+
+function submitMeetingDate() {
+  const v = document.getElementById('meetingDateInput').value;
+  if (!v) return alert('请选择日期');
+  const picked = new Date(v + 'T00:00:00');
+  if (picked <= new Date()) return alert('日期必须在今天之后');
+
+  // Reset scores when transitioning to a new meeting cycle.
+  Promise.all([
+    database.ref(getDataPath('meta/meetingDate')).set(v),
+    database.ref(getDataPath('scores')).set({ you: 0, ta: 0 })
+  ]).then(() => {
+    targetDate = picked;
+    updateMeetingDateUI(v);
+    updateCountdown();
+    document.getElementById('meetingPopup').classList.remove('show');
+  });
 }
 
 // ==================== MOOD ====================
@@ -2085,11 +2177,11 @@ function initApp() {
   if (!currentUser) return;
 
   initFirebase();
-  checkMeetingDay();
   initRoleUI();
   renderHoroscope();
   initMoodButtons();
   setupFirebaseListeners();
+  loadMeetingDate();
   loadPhotos();
 
   // Update day count
