@@ -3,5 +3,9 @@
   "version": "1.0.0",
   "dependencies": {
     "cos-nodejs-sdk-v5": "^2.14.0"
+  },
+  "scripts": {
+    "vercel-build": "echo 'No build required for API-only project'",
+    "build": "echo 'No build required for API-only project'"
   }
 }
